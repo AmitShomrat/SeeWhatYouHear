@@ -1,5 +1,5 @@
-#include "YourPluginName/PluginProcessor.h"
-#include "YourPluginName/PluginEditor.h"
+#include "SimpleEQ/PluginProcessor.h"
+#include "SimpleEQ/PluginEditor.h"
 
 namespace audio_plugin {
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
