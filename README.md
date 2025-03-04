@@ -73,3 +73,8 @@ Don't forget to change "YourPluginName" to, well, your plugin name everywhere ðŸ
 See how I create this template step by step in this video:
 
 [![Audio plugin template tutorial video](http://img.youtube.com/vi/Uq7Hwt18s3s/0.jpg)](https://www.youtube.com/watch?v=Uq7Hwt18s3s "Audio plugin template tutorial video")
+
+<<MY README>>
+1. Few targets we have to learn how to switch between these.
+2. Audio Parameter class float types use with sliders and adjustable over a wide range.
+3.
