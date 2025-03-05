@@ -4,8 +4,16 @@
 #include <juce_dsp/juce_dsp.h>
 #include <juce_audio_formats/juce_audio_formats.h>
 
-
 namespace audio_plugin {
+struct ChainSettings {
+  float lowCutFreq{0}, highCutFreq{0}, 
+  peakFreq{0}, peakGainInDecibels{0},
+  peakQuality{1.f};
+  int lowCutSlope{0}, highCutSlope{0};
+};
+
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
+
 class AudioPluginAudioProcessor : public juce::AudioProcessor {
 public:
   AudioPluginAudioProcessor();
@@ -63,7 +71,11 @@ private:
   using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
   //MonoChain for each channel.
   MonoChain leftChain, rightChain; 
-
+  enum ChainPositions {
+    LowCut,
+    Peak,
+    HighCut
+  };
   // Audio file playback members
   juce::AudioFormatManager formatManager;
   std::unique_ptr<juce::AudioFormatReader> formatReader;
@@ -72,6 +84,8 @@ private:
   bool fileLoaded = false;
   bool playing = false;
   bool looping = false;
+  double mySampleRate = 44100.0;
+  
   
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 };
