@@ -17,6 +17,8 @@ juce_add_plugin(${PROJECT_NAME}
     PLUGIN_CODE EXPL # change this
     FORMATS Standalone VST3 # may change this
     PRODUCT_NAME "SimpleEQ" # change this
+    VST3_COPY_DIR "C:/Program Files/Common Files/VST3"
+    COPY_PLUGIN_AFTER_BUILD TRUE
 )
 
 # Sets the source files of the plugin project.
@@ -40,6 +42,8 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         juce::juce_audio_utils
     PUBLIC
+        juce::juce_dsp
+        juce::juce_audio_formats
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags

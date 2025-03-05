@@ -68,6 +68,24 @@ pre-commit install
 
 Don't forget to change "YourPluginName" to, well, your plugin name everywhere 😉
 
+## Testing with AudioPluginHost
+
+You can easily test your plugin using JUCE's AudioPluginHost. The following build presets are available:
+
+```bash
+# Using Ninja build system
+$ cmake --preset default
+$ cmake --build --preset run-with-host      # Builds and runs AudioPluginHost
+$ cmake --build --preset run-with-plugin    # Copies the plugin to a known location and runs AudioPluginHost
+
+# Using Visual Studio
+$ cmake --preset vs
+$ cmake --build --preset vs-run-with-host   # Builds and runs AudioPluginHost in Visual Studio
+$ cmake --build --preset vs-run-with-plugin # Copies the plugin to a known location and runs AudioPluginHost
+```
+
+The AudioPluginHost will be built as part of the build process, and your plugin will be automatically copied to the right location for testing.
+
 ## How was this template built?
 
 See how I create this template step by step in this video:
@@ -76,5 +94,17 @@ See how I create this template step by step in this video:
 
 <<MY README>>
 1. Few targets we have to learn how to switch between these.
-2. Audio Parameter class float types use with sliders and adjustable over a wide range.
-3.
+2. We starts the app by defining a AudioProcessorValueTreeState
+3. We sets it default parameters and it is expecting to a layout of parameters. 
+4. Audio Parameter class float types use with sliders and adjustable over a wide range.
+5. Since the plugin is Stereo (has 2 channels) each of the signal processing of the class dsp is set up to process over a single channle (mono) unless it declares as a stereo on the documentation thus it means we have to duplicate the processors in order to assign them for both channels.
+6. "Using" key for alias and structure types of complex objects to simple reference name.
+7. In order to declare a processingChain for left MonoChannel and left MonoChannel and 
+8. A processingChain needs a processing Context to be passed for each member.
+Prepare to Playback definition; In audio processing, "playback" refers to the actual process of playing or processing audio in real-time. When we say "prepare for playback", it means setting up all the necessary components before audio processing begins, such as:
+Setting the sample rate (how many audio samples per second, e.g., 44.1kHz)
+Setting the block size (how many samples to process at once)
+Allocating memory for buffers
+Initializing filters and other processors
+Setting up internal states of audio processors
+For example, in your code:

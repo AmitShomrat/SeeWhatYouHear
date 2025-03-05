@@ -38,6 +38,51 @@
     {
       "name": "default",
       "configurePreset": "default"
+    },
+    {
+      "name": "run-with-host",
+      "configurePreset": "default",
+      "targets": [
+        "run_with_host"
+      ],
+      "displayName": "Build and run with AudioPluginHost",
+      "description": "Builds the project and runs the AudioPluginHost with the AudioFilePlayer plugin"
+    },
+    {
+      "name": "run-with-plugin",
+      "configurePreset": "default",
+      "targets": [
+        "run_with_plugin"
+      ],
+      "displayName": "Build and run with prepared plugin path",
+      "description": "Builds the project, prepares the plugin directory, and runs the AudioPluginHost"
+    },
+    {
+      "name": "vs-run-with-host",
+      "configurePreset": "vs",
+      "targets": [
+        "run_with_host"
+      ],
+      "displayName": "VS: Build and run with AudioPluginHost",
+      "description": "Builds the project in Visual Studio and runs the AudioPluginHost with the AudioFilePlayer plugin"
+    },
+    {
+      "name": "vs-run-with-plugin",
+      "configurePreset": "vs",
+      "targets": [
+        "run_with_plugin"
+      ],
+      "displayName": "VS: Build and run with prepared plugin path",
+      "description": "Builds the project in Visual Studio, prepares the plugin directory, and runs the AudioPluginHost"
+    },
+    {
+      "name": "debug-with-filtergraph",
+      "configurePreset": "vs",
+      "targets": [
+        "debug_with_host"
+      ],
+      "displayName": "Debug with saved filtergraph",
+      "description": "Launches AudioPluginHost with saved filtergraph file for debugging"
     }
   ],
   "testPresets": [
