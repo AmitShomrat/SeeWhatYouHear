@@ -29,7 +29,7 @@ TEST_F(CutSlopeTest, ValidatesSlopeValues) {
     
     // Check that each slope is a multiple of 12
     for (size_t i = 0; i < slopes.size(); ++i) {
-        int expectedValue = (i + 1) * 12;
+        int expectedValue = static_cast<int>((i + 1) * 12);
         std::string expectedString = std::to_string(expectedValue) + " dB/Oct";
         EXPECT_EQ(slopes[i], expectedString);
     }
