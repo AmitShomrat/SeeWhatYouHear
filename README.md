@@ -102,9 +102,10 @@ See how I create this template step by step in this video:
 7. In order to declare a processingChain for left MonoChannel and left MonoChannel and 
 8. A processingChain needs a processing Context to be passed for each member.
 Prepare to Playback definition; In audio processing, "playback" refers to the actual process of playing or processing audio in real-time. When we say "prepare for playback", it means setting up all the necessary components before audio processing begins, such as:
-Setting the sample rate (how many audio samples per second, e.g., 44.1kHz)
-Setting the block size (how many samples to process at once)
-Allocating memory for buffers
-Initializing filters and other processors
-Setting up internal states of audio processors
-For example, in your code:
+Setting the sample rate (how many audio samples per second, e.g., 44.1kHz), Setting the block size (how many samples to process at once), Allocating memory for buffers
+Initializing filters and other processors, Setting up internal states of audio processors.
+
+
+
+
+MODIFIED YOUR SOURCE ? CTRL + S -> cmake --build vs-build --config Debug -> cmake --build .\vs-build\ --target debug_with_host
