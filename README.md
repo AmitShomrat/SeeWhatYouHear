@@ -122,34 +122,32 @@ Initializing filters and other processors, Setting up internal states of audio p
 prepareToPlay(double sampleRate, int samplesPerBlock) used for that matter, 'ProcessSpec' of the dsp class has all of the definitions of "Preparing" the Process later ProcessChain.prepare(spec).
 
 
-
-
 3. A processingChain needs a Process_Context s.t the signal flows through each Processor member (Filters).
 ( I don't realize why he is defining these out of our 'AudioPluginAudioProcessor' class )
 'struct' Obj_name used for defining a data structure called 'ChainSettings' which contains all of the params actual values and a getChainSettings(juce::AudioProcessorValueTreeState& apvts) that retrieves a ChainSettings.
 Each parameter is assigned to the settings using apvts.getRawParameterValue(Param_stringREF) which returns a smart pointer to the value of the parameter ( NOT the normalized but the TRUE ). that smart pointer has a load() function which is Thread_Safe way to acquire Parameter value (Multiple threads asking this).
 
 
-4. PROCESS - CONTEXT: 
+4. Setting MonoChain coefficients:
 first thing first use the getChainSettings(apvts) retrieves the current state of the sliders (parameters).
 'auto' obj_name is for defining the type of an object based on the retrieved value has few advantages.
 
-Peak context - A peak defined by its peakFreq, peakQuality and peakGain. so we need to declare a peakCoefficients using juce::dsp::IIR::Coefficients<float>::makePeakFilter (pass the sample rate and peak values out of our ChainSettings) the peakGain converted to decibels using juce::Decibels::decibelsToGain(peakGain). 
+Peak coefficients - A peak defined by its peakFreq, peakQuality and peakGain. so we need to declare a peakCoefficients using juce::dsp::IIR::Coefficients<float>::makePeakFilter (pass the sample rate and peak values out of our ChainSettings) the peakGain converted to decibels using juce::Decibels::decibelsToGain(peakGain). 
 Use a enum ChainPositions {LowCut, Peak, HighCut} declared ahead inside 'PluginProcessor.h' in order to assign peakCoefficients to our left/right MonoChains [ The structure is get function of ProcessChain that retrieves the desired Filter in that case 'peak' and access coefficients field both makePeakFilter and get allocate the coefficients over the heap so we need to dereference them for the assignment]
 
   *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
   *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
 
-LowCut/HighCut contexts - ..
+Setting the LowCut/HighCut filter coefficients - The choice of cut slope is dependant by its order s.t 12 db/oct is using a single filter, 24 db/oct using two filters ( the previous and the next to it ) and so on.. the juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(Freq, sampleRate, order ) retrives array of IIR::Cofficient objects one for each order = 2. Since we have 4 choices (0, 1, 2, 3) we need to add 1 and multiply by 2 to get the right orders (2, 4, 6, 8).
+as we did with the peak; assign a reference to the get 'LowCut' function of the MonoChain, and then setBypassed all 4 'Filters' of the 'CutFilter' by passing the position of it in the Chain. finaly a switch with chainSettings.lowCutSlope will define the choice of the user and respond by setBypassed the right Filters and assign their coeficients to our LowCut Processor. ( Duplications, in advance refactoring )
 
 
+5. PROCESS - CONTEXT: 
 DEFINITION: 
 In JUCE audio plugin development, processBlock is a crucial virtual method that every AudioProcessor subclass must implement. It's where the actual audio processing happens for each block of audio that passes through your plugin.
 
-processBlock - Simply after the context has defined we have to process them :) to do so we wrapping the AudioBuffer& with 'AudiBlock', a dsp class, in order to get left/right blocks using getSingleChannelBlock (#Channel_Number) which correspond to 0,1 respectively. next, create a ProcessContextReplacing<float>(block_obj), finally, invoke 
+processBlock - Simply after the cofficients has defined we have to process them :) to do so we wrapping the AudioBuffer& with 'AudiBlock', a dsp class, in order to get left/right blocks using getSingleChannelBlock (#Channel_Number) which correspond to 0,1 respectively. next, create a ProcessContextReplacing<float>(block_obj), finally, invoke 
 processChain.process(context_obj), for both channels.
-
-
 SUMMARIZE CONVENTION processChain ( ProcessContext ( block -> buffer ) )  .
 
 

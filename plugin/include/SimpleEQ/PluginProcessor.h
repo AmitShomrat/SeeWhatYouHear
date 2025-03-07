@@ -71,6 +71,12 @@ private:
   using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
   //MonoChain for each channel.
   MonoChain leftChain, rightChain; 
+  enum Slope { 
+    Slope_12,
+    Slope_24,
+    Slope_36,
+    Slope_48
+  };
   enum ChainPositions {
     LowCut,
     Peak,
