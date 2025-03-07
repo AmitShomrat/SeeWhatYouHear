@@ -88,7 +88,7 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate,
   leftChain.prepare(spec);
   rightChain.prepare(spec);
 
-      auto chainSettings = getChainSettings(apvts);
+  auto chainSettings = getChainSettings(apvts);
   auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
     sampleRate,
     chainSettings.peakFreq,
@@ -145,6 +145,10 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
   // this code if your algorithm always overwrites all the output channels.
   for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
     buffer.clear(i, 0, buffer.getNumSamples());
+
+
+
+
 
   auto chainSettings = getChainSettings(apvts);
   auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
