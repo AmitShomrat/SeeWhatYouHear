@@ -139,7 +139,7 @@ Use a enum ChainPositions {LowCut, Peak, HighCut} declared ahead inside 'PluginP
   *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
 
 Setting the LowCut/HighCut filter coefficients - The choice of cut slope is dependant by its order s.t 12 db/oct is using a single filter, 24 db/oct using two filters ( the previous and the next to it ) and so on.. the juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(Freq, sampleRate, order ) retrives array of IIR::Cofficient objects one for each order = 2. Since we have 4 choices (0, 1, 2, 3) we need to add 1 and multiply by 2 to get the right orders (2, 4, 6, 8).
-as we did with the peak; assign a reference to the get 'LowCut' function of the MonoChain, and then setBypassed all 4 'Filters' of the 'CutFilter' by passing the position of it in the Chain. finaly a switch with chainSettings.lowCutSlope will define the choice of the user and respond by setBypassed the right Filters and assign their coeficients to our LowCut Processor. ( Duplications, in advance refactoring )
+as we did with the peak; assign a reference to the get 'LowCut' function of the MonoChain, and then setBypassed all 4 'Filters' of the 'CutFilter' by passing the position of it in the Chain. finaly a switch with chainSettings.lowCutSlope will define the choice of the user and respond by setBypassed the right Filters and assign their coeficients to our LowCut Processor. ( Duplications, in advance refactoring )q
 
 
 5. PROCESS - CONTEXT: 
@@ -154,3 +154,14 @@ SUMMARIZE CONVENTION processChain ( ProcessContext ( block -> buffer ) )  .
 
 
 MODIFIED YOUR SOURCE ? CTRL + S -> cmake --build vs-build --config Debug -> cmake --build .\vs-build\ --target debug_with_host
+
+MAN Examples:
+git --help 
+cmake /?
+
+GIT BASICS:
+git add [target files changes] - indexing or staging the changes one step from commit.
+git reset [target files changes] - Unstaged a file from index. (opposite of git add). 
+git commit -m "commit massege"
+git log - discover all commits and their branch.
+git diff - discover all changes from your last commit.
