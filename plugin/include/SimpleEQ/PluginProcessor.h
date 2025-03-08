@@ -17,7 +17,7 @@ struct ChainSettings {
   float lowCutFreq{0}, highCutFreq{0}, 
   peakFreq{0}, peakGainInDecibels{0},
   peakQuality{1.f};
-  int lowCutSlope{static_cast<int>(Slope::Slope_12)}, highCutSlope{static_cast<int>(Slope::Slope_12)};
+  Slope lowCutSlope{Slope::Slope_12}, highCutSlope{Slope::Slope_12};
 };
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
@@ -105,65 +105,61 @@ private:
     cutFilter.template setBypassed<index>(false);
     cutFilter.template get<index>().coefficients = *coefficients[index];
   }
-  // Update the cut filters for the left channel
-  template <typename ChainType, typename CoefficientType>
-  void updateCutFilters(ChainType& leftLowCut, 
-                        const CoefficientType& cutCoefficients, 
-                        const ChainSettings chainSettings )
-  {
-    leftLowCut.template setBypassed<0>(true);
-    leftLowCut.template setBypassed<1>(true);
-    leftLowCut.template setBypassed<2>(true);
-    leftLowCut.template setBypassed<3>(true);
 
-    switch (chainSettings.lowCutSlope)
+  template <typename ChainType, typename CoefficientType>
+  void updateCutFilters(ChainType& monoCutFilter, 
+                        const CoefficientType& cutCoefficients, 
+                        const Slope& slope )
+  {
+    monoCutFilter.template setBypassed<0>(true);
+    monoCutFilter.template setBypassed<1>(true);
+    monoCutFilter.template setBypassed<2>(true);
+    monoCutFilter.template setBypassed<3>(true);
+
+    switch ( slope )
     {
       case Slope_48:
-        update<3>(leftLowCut, cutCoefficients);
-        break;
+        update<3>(monoCutFilter, cutCoefficients);
       case Slope_36:
-        update<2>(leftLowCut, cutCoefficients);
-        break;
+        update<2>(monoCutFilter, cutCoefficients);
       case Slope_24:
-        update<1>(leftLowCut, cutCoefficients);
-        break;
+        update<1>(monoCutFilter, cutCoefficients);
       case Slope_12:
-        update<0>(leftLowCut, cutCoefficients);
-        break;
+        update<0>(monoCutFilter, cutCoefficients);
     }
 
     // switch (chainSettings.lowCutSlope)
     // {
     // case Slope_12:
-    //   leftLowCut.template setBypassed<0>(false);
-    //   leftLowCut.template get<0>().coefficients = *cutCoefficients[0];
+    //   monoCutFilter.template setBypassed<0>(false);
+    //   monoCutFilter.template get<0>().coefficients = *cutCoefficients[0];
     //   break;
     
     // case Slope_24:
-    //   leftLowCut.template setBypassed<0>(false);
-    //   leftLowCut.template get<0>().coefficients = *cutCoefficients[0];
-    //   leftLowCut.template setBypassed<1>(false);
-    //   leftLowCut.template get<1>().coefficients = *cutCoefficients[1];
+    //   monoCutFilter.template setBypassed<0>(false);
+    //   monoCutFilter.template get<0>().coefficients = *cutCoefficients[0];
+    //   monoCutFilter.template setBypassed<1>(false);
+    //   monoCutFilter.template get<1>().coefficients = *cutCoefficients[1];
     //   break;
 
     // case Slope_36:
-    //   leftLowCut.template setBypassed<0>(false);
-    //   leftLowCut.template get<0>().coefficients = *cutCoefficients[0];
-    //   leftLowCut.template setBypassed<1>(false);
-    //   leftLowCut.template get<1>().coefficients = *cutCoefficients[1];
-    //   leftLowCut.template setBypassed<2>(false);
-    //   leftLowCut.template get<2>().coefficients = *cutCoefficients[2];
+    //   monoCutFilter.template setBypassed<0>(false);
+    //   monoCutFilter.template get<0>().coefficients = *cutCoefficients[0];
+    //   monoCutFilter.template setBypassed<1>(false);
+    //   monoCutFilter.template get<1>().coefficients = *cutCoefficients[1];
+    //   monoCutFilter.template setBypassed<2>(false);
+    //   monoCutFilter.template get<2>().coefficients = *cutCoefficients[2];
     //   break;
 
     // case Slope_48:
-    //   leftLowCut.template setBypassed<0>(false);
-    //   leftLowCut.template get<0>().coefficients = *cutCoefficients[0];
-    //   leftLowCut.template setBypassed<1>(false);
-    //   leftLowCut.template get<1>().coefficients = *cutCoefficients[1];
-    //   leftLowCut.template setBypassed<2>(false);
-    //   leftLowCut.template get<2>().coefficients = *cutCoefficients[2];
-    //   leftLowCut.template setBypassed<3>(false);
-    //   leftLowCut.template get<3>().coefficients = *cutCoefficients[3];
+    //   monoCutFilter.template setBypassed<0>(false);
+    //   monoCutFilter.template get<0>().coefficients = *cutCoefficients[0];
+    //   monoCutFilter.template setBypassed<1>(false);
+    //   monoCutFilter.template get<1>().coefficients = *cutCoefficients[1];
+    //   monoCutFilter.template setBypassed<2>(false);
+    //   monoCutFilter.template get<2>().coefficients = *cutCoefficients[2];
+    //   monoCutFilter.template setBypassed<3>(false);
+    //   monoCutFilter.template get<3>().coefficients = *cutCoefficients[3];
     // }
   }                        
   
