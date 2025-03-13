@@ -123,7 +123,7 @@ prepareToPlay(double sampleRate, int samplesPerBlock) used for that matter, 'Pro
 
 
 3. A processingChain needs a Process_Context s.t the signal flows through each Processor member (Filters).
-( I don't realize why he is defining these out of our 'AudioPluginAudioProcessor' class )
+( I have'nt realized why is he defining these out of our 'AudioPluginAudioProcessor' class ) ->
 'struct' Obj_name used for defining a data structure called 'ChainSettings' which contains all of the params actual values and a getChainSettings(juce::AudioProcessorValueTreeState& apvts) that retrieves a ChainSettings.
 Each parameter is assigned to the settings using apvts.getRawParameterValue(Param_stringREF) which returns a smart pointer to the value of the parameter ( NOT the normalized but the TRUE ). that smart pointer has a load() function which is Thread_Safe way to acquire Parameter value (Multiple threads asking this).
 

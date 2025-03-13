@@ -71,7 +71,7 @@ public:
 
 private:
 
-  // The using k.w is for aliasing.
+  //The using k.w is for aliasing.
   using Filter = juce::dsp::IIR::Filter<float>;
   //CutFilter is a chain of 4 filters because we have 4 bands. and then passing a processing context through eace member of the chain automatically.
   using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
