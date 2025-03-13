@@ -165,3 +165,7 @@ git reset [target files changes] - Unstaged a file from index. (opposite of git 
 git commit -m "commit massege"
 git log - discover all commits and their branch.
 git diff - discover all changes from your last commit.
+
+
+
+Create a simple configuration that builds the project, PluginHost and AudioFilePlayer + manage debug_with_host target to work without filtergraph host-preset if isn't exists one else take the last modified file, all of that in a single build and upload the project to git .
