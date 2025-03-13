@@ -89,6 +89,38 @@ void AudioPluginAudioProcessor::updateCoefficients(Coefficients& old, const Coef
 }
 
 
+void AudioPluginAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettings) {
+     //Setting the LowCutFreq coefficients
+ auto lowlowCutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,
+                                                                                                      mySampleRate, 2 * (1 + chainSettings.lowCutSlope) );                                                                                                       
+
+  auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
+  auto& rightLowCut = rightChain.get<ChainPositions::LowCut>();
+
+  AudioPluginAudioProcessor::updateCutFilters(leftLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
+  AudioPluginAudioProcessor::updateCutFilters(rightLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
+
+}
+
+void AudioPluginAudioProcessor::updateHighCutFilters(const ChainSettings& chainSettings) {
+  auto highCutCoefficients = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(chainSettings.highCutFreq,
+                                                                                                      mySampleRate,2 * (1 + chainSettings.highCutSlope) );
+
+  auto& leftHighCut = leftChain.get<ChainPositions::HighCut>();
+  AudioPluginAudioProcessor::updateCutFilters(leftHighCut, highCutCoefficients, chainSettings.highCutSlope );
+
+  auto& rightHighCut = rightChain.get<ChainPositions::HighCut>();
+  AudioPluginAudioProcessor::updateCutFilters(rightHighCut, highCutCoefficients, chainSettings.highCutSlope );
+
+}
+
+void AudioPluginAudioProcessor::updateFilters () {
+  auto chainSettings = getChainSettings(apvts);
+  updateLowCutFilters(chainSettings);
+  updatePeakFilter(chainSettings);
+  updateHighCutFilters(chainSettings);
+}
+
 void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
   // Use this method as the place to do any pre-playback
   // initialisation that you need..
@@ -103,18 +135,9 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   leftChain.prepare(spec);
   rightChain.prepare(spec);
 
-  auto chainSettings = getChainSettings(apvts);
-  updatePeakFilter(chainSettings);
+  updateFilters();
 
 
-
- auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,
-                                                                                                    sampleRate,2 * (1 + chainSettings.lowCutSlope) ); 
-  auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
-  AudioPluginAudioProcessor::updateCutFilters(leftLowCut, cutCoefficients, chainSettings.lowCutSlope );
-
-  auto& rightLowCut = rightChain.get<ChainPositions::LowCut>();
-  AudioPluginAudioProcessor::updateCutFilters(rightLowCut, cutCoefficients, chainSettings.lowCutSlope );
 
 }
 
@@ -165,20 +188,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     buffer.clear(i, 0, buffer.getNumSamples());
 
 
-  auto chainSettings = getChainSettings(apvts);
-  updatePeakFilter(chainSettings);
-
-
-  //Setting the LowCutFreq coefficients
- auto lowCutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,
-                                                                                                      mySampleRate, 2 * (1 + chainSettings.lowCutSlope) );                                                                                                       
-
-  auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
-  AudioPluginAudioProcessor::updateCutFilters(leftLowCut, lowCutCoefficients, chainSettings.lowCutSlope );
-
-  auto& rightLowCut = rightChain.get<ChainPositions::LowCut>();
-  AudioPluginAudioProcessor::updateCutFilters(rightLowCut, lowCutCoefficients, chainSettings.lowCutSlope );
-
+  updateFilters();
+ 
   //Processing the audio block
   juce::dsp::AudioBlock<float> block(buffer);
   

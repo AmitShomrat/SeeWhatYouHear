@@ -127,41 +127,11 @@ private:
       case Slope_12:
         update<0>(monoCutFilter, cutCoefficients);
     }
+  }   
 
-    // switch (chainSettings.lowCutSlope)
-    // {
-    // case Slope_12:
-    //   monoCutFilter.template setBypassed<0>(false);
-    //   monoCutFilter.template get<0>().coefficients = *cutCoefficients[0];
-    //   break;
-    
-    // case Slope_24:
-    //   monoCutFilter.template setBypassed<0>(false);
-    //   monoCutFilter.template get<0>().coefficients = *cutCoefficients[0];
-    //   monoCutFilter.template setBypassed<1>(false);
-    //   monoCutFilter.template get<1>().coefficients = *cutCoefficients[1];
-    //   break;
-
-    // case Slope_36:
-    //   monoCutFilter.template setBypassed<0>(false);
-    //   monoCutFilter.template get<0>().coefficients = *cutCoefficients[0];
-    //   monoCutFilter.template setBypassed<1>(false);
-    //   monoCutFilter.template get<1>().coefficients = *cutCoefficients[1];
-    //   monoCutFilter.template setBypassed<2>(false);
-    //   monoCutFilter.template get<2>().coefficients = *cutCoefficients[2];
-    //   break;
-
-    // case Slope_48:
-    //   monoCutFilter.template setBypassed<0>(false);
-    //   monoCutFilter.template get<0>().coefficients = *cutCoefficients[0];
-    //   monoCutFilter.template setBypassed<1>(false);
-    //   monoCutFilter.template get<1>().coefficients = *cutCoefficients[1];
-    //   monoCutFilter.template setBypassed<2>(false);
-    //   monoCutFilter.template get<2>().coefficients = *cutCoefficients[2];
-    //   monoCutFilter.template setBypassed<3>(false);
-    //   monoCutFilter.template get<3>().coefficients = *cutCoefficients[3];
-    // }
-  }                        
+  void updateLowCutFilters(const ChainSettings& chainSettings);
+  void updateHighCutFilters(const ChainSettings& chainSettings);
+  void updateFilters ();                     
   
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 };
