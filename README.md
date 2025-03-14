@@ -139,7 +139,7 @@ Use a enum ChainPositions {LowCut, Peak, HighCut} declared ahead inside 'PluginP
   *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
 
 Setting the LowCut/HighCut filter coefficients - The choice of cut slope is dependant by its order s.t 12 db/oct is using a single filter, 24 db/oct using two filters ( the previous and the next to it ) and so on.. the juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(Freq, sampleRate, order ) retrives array of IIR::Cofficient objects one for each order = 2. Since we have 4 choices (0, 1, 2, 3) we need to add 1 and multiply by 2 to get the right orders (2, 4, 6, 8).
-as we did with the peak; assign a reference to the get 'LowCut' function of the MonoChain, and then setBypassed all 4 'Filters' of the 'CutFilter' by passing the position of it in the Chain. finaly a switch with chainSettings.lowCutSlope will define the choice of the user and respond by setBypassed the right Filters and assign their coeficients to our LowCut Processor. ( Duplications, in advance refactoring )q
+as we did with the peak; assign a reference to the get 'LowCut' function of the MonoChain, and then setBypassed all 4 'Filters' of the 'CutFilter' by passing the position of it in the Chain. finaly a switch with chainSettings.lowCutSlope will define the choice of the user and respond by setBypassed the right Filters and assign their coeficients to our LowCut Processor. ( Duplications, in advance refactoring )
 
 
 5. PROCESS - CONTEXT: 
@@ -149,6 +149,17 @@ In JUCE audio plugin development, processBlock is a crucial virtual method that 
 processBlock - Simply after the cofficients has defined we have to process them :) to do so we wrapping the AudioBuffer& with 'AudiBlock', a dsp class, in order to get left/right blocks using getSingleChannelBlock (#Channel_Number) which correspond to 0,1 respectively. next, create a ProcessContextReplacing<float>(block_obj), finally, invoke 
 processChain.process(context_obj), for both channels.
 SUMMARIZE CONVENTION processChain ( ProcessContext ( block -> buffer ) )  .
+
+
+STORING AND RESTORING A VALUE STATES:
+The function getStateInformation(juce::MemoryBlock& destData) used by the host (DAW) to store the current plugin state s.t it will restoe them between sessions. by constructing an MemoryOuputStream and pass it the empty memoryBlock which was provided by the host as well. then we will invoke the function writeToStream by the state ValueTree attribute of our apvts practically saves the current state.
+
+The function setStateInformation(const void* data, int sizeInBytes) similarly invoked by the host when the user is restoring the project and pass a pointer to the binary stored data. then creating a treeValue to replace is with the default one tree.isValid() is use to check the format.. and then updateFilters() resulting the same state of the plugin. 
+
+(Your Plugin Code → MemoryOutputStream → MemoryBlock → Host DAW)
+ 
+
+
 
 
 
