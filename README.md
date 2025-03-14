@@ -152,13 +152,16 @@ SUMMARIZE CONVENTION processChain ( ProcessContext ( block -> buffer ) )  .
 
 
 STORING AND RESTORING A VALUE STATES:
-The function getStateInformation(juce::MemoryBlock& destData) used by the host (DAW) to store the current plugin state s.t it will restoe them between sessions. by constructing an MemoryOuputStream and pass it the empty memoryBlock which was provided by the host as well. then we will invoke the function writeToStream by the state ValueTree attribute of our apvts practically saves the current state.
+1. The function getStateInformation(juce::MemoryBlock& destData) used by the host (DAW) to store the current plugin state s.t it will restoe them between sessions. by constructing an MemoryOuputStream and pass it the empty memoryBlock which was provided by the host as well. then we will invoke the function writeToStream by the state ValueTree attribute of our apvts practically saves the current state.
 
-The function setStateInformation(const void* data, int sizeInBytes) similarly invoked by the host when the user is restoring the project and pass a pointer to the binary stored data. then creating a treeValue to replace is with the default one tree.isValid() is use to check the format.. and then updateFilters() resulting the same state of the plugin. 
+2. Similarly the function setStateInformation(const void* data, int sizeInBytes) invoked by the host when the user is restoring the project, pass a pointer to the binary stored data. Create a treeValue obj to replace it with the default apvts state att, tree.isValid() is use to check the format.. and then updateFilters() resulting the same state of the plugin. 
 
 (Your Plugin Code → MemoryOutputStream → MemoryBlock → Host DAW)
  
-
+GUI:
+For the first part use the standAlone target instead of the host.
+1. Go to the pluginEditor.cpp and inside of the constructor setSize(600, 400) to a bigger window.
+2. declare of a new struct called customRotarySlider inside pluginEditor.cpp
 
 
 
