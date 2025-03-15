@@ -22,6 +22,19 @@ struct ChainSettings {
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
 
+  //The using k.w is for aliasing.
+  using Filter = juce::dsp::IIR::Filter<float>;
+  //CutFilter is a chain of 4 filters because we have 4 bands. and then passing a processing context through eace member of the chain automatically.
+  using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+  //MonoChain is a chain of 3 filters (2 cut filters(Low and High) and 1 peaking filter).
+  using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
+
+enum ChainPositions {
+    LowCut,
+    Peak,
+    HighCut
+  };
+
 class AudioPluginAudioProcessor : public juce::AudioProcessor {
 public:
   AudioPluginAudioProcessor();
@@ -70,21 +83,10 @@ public:
   bool isPlaying() const { return playing; }
 
 private:
-
-  //The using k.w is for aliasing.
-  using Filter = juce::dsp::IIR::Filter<float>;
-  //CutFilter is a chain of 4 filters because we have 4 bands. and then passing a processing context through eace member of the chain automatically.
-  using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-  //MonoChain is a chain of 3 filters (2 cut filters(Low and High) and 1 peaking filter).
-  using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
   //MonoChain for each channel.
   MonoChain leftChain, rightChain; 
 
-  enum ChainPositions {
-    LowCut,
-    Peak,
-    HighCut
-  };
+
   // Audio file playback members
   juce::AudioFormatManager formatManager;
   std::unique_ptr<juce::AudioFormatReader> formatReader;
