@@ -159,10 +159,38 @@ STORING AND RESTORING A VALUE STATES:
 (Your Plugin Code → MemoryOutputStream → MemoryBlock → Host DAW)
  
 GUI:
-For the first part use the standAlone target instead of the host.
-1. Go to the pluginEditor.cpp and inside of the constructor setSize(600, 400) to a bigger window.
-2. declare of a new struct called customRotarySlider inside pluginEditor.cpp
+We are about to connect our parameters to a the GUI sliders for this part will use the stand_alone target instead of the host to confirm the positions and look of our plugin we will change the createEditor function to return new AudioPluginAudioProcessorEditor(*this) instead of a generic as we used before.
+1. Go to the pluginEditor.cpp and inside of the constructor set the size with setSize(600, 400) to get a bigger window, declare of a new struct class called CustomRotarySlider inside pluginEditor.h:
 
+struct CustomRotarySlider : juce::Slider {
+  CustomRotarySlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag,
+  juce::Slider::TextEntryBoxPosition::NoTextBox)
+  {
+
+  }
+
+CustomRotarySlider inherits from JUCE's Slider class, allowing you to customize its appearance and behavior.
+Sets Slider Style: In the constructor, it initializes the base Slider with:
+SliderStyle::RotaryHorizontalVerticalDrag: Creates a circular knob that users can drag in both horizontal and vertical directions
+TextEntryBoxPosition::NoTextBox: Removes the default text box that would show numerical values
+Custom UI Element: This creates specialized rotary knobs commonly used in audio plugins for parameters like:
+Frequency controls
+Gain/volume adjustments
+Q/resonance settings
+Filter slope selection
+The empty constructor body { } means you haven't added any custom behavior yet, but you could extend this class to add custom drawing, tooltips, or other UI enhancements.
+This is a standard approach in JUCE audio plugin development to create specialized UI controls that match the conventions of professional audio software.
+
+2. Declare private slides for each of our parameters from the type of CustomRotarySlider. A private function that returns a vector of juce::components* pointers, simply returns references of our sliders objects we've just declared, we are using it to pass each slider to the addAndMakeVisible(comp) function inside of our editor constructor.
+
+3. Thus the sliders are visible and we able to position their lay out. This is heppening inside of the resized funcion:
+  First, we will use the bounds = getLocalBounds(); this function returns a Rectangle<int> obj that represents the dimentions we've setted in the constructor ( e.g the start position is (0,0) the right to corner is (0,400) the left down (600,0) and the right down is (600,400) ).
+  The concept is to first edit the bounds and then set them for each slider.. the responseArea is a placeHolder 1/3 from the top (later used for the analyzer) auto responseArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.33)) this a Rectangle<int> positioned on the top 33% from the top of bounds dimention its importent to noitce that the left size of bounds now is 2/3, because it is preserving the proportions, now if we will take a 0.5 from the hight of bounds it will take a half size from the remaining 2/3 and so on ..
+
+4. Attachments - A SliderAttachment (formally juce::AudioProcessorValueTreeState::SliderAttachment) is a specialized class in JUCE that creates and manages a connection between:
+- A UI element (a Slider component)
+- An underlying parameter in your audio plugin (stored in the AudioProcessorValueTreeState)
+We each parameter an attachment and initialize them in the initilize line (editor constructor). 
 
 
 
