@@ -17,7 +17,7 @@ juce_add_plugin(${PROJECT_NAME}
     PLUGIN_CODE EXPL # change this
     FORMATS Standalone VST3 # may change this
     PRODUCT_NAME "SimpleEQ" # change this
-    VST3_COPY_DIR "C:/Program Files/Common Files/VST3"
+    VST3_COPY_DIR "C:/Program Files/Common Files/VST3" # change this to env s.t others will change it
     COPY_PLUGIN_AFTER_BUILD TRUE
 )
 

@@ -22,6 +22,23 @@ struct ChainSettings {
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
 
+  //The using k.w is for aliasing.
+  using Filter = juce::dsp::IIR::Filter<float>;
+  //CutFilter is a chain of 4 filters because we have 4 bands. and then passing a processing context through eace member of the chain automatically.
+  using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+  //MonoChain is a chain of 3 filters (2 cut filters(Low and High) and 1 peaking filter).
+  using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
+
+enum ChainPositions {
+    LowCut,
+    Peak,
+    HighCut
+  };
+
+  using Coefficients = Filter::CoefficientsPtr;
+  void updateCoefficients(Coefficients& old, const Coefficients& replacements);
+  Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
+
 class AudioPluginAudioProcessor : public juce::AudioProcessor {
 public:
   AudioPluginAudioProcessor();
@@ -70,21 +87,10 @@ public:
   bool isPlaying() const { return playing; }
 
 private:
-
-  //The using k.w is for aliasing.
-  using Filter = juce::dsp::IIR::Filter<float>;
-  //CutFilter is a chain of 4 filters because we have 4 bands. and then passing a processing context through eace member of the chain automatically.
-  using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-  //MonoChain is a chain of 3 filters (2 cut filters(Low and High) and 1 peaking filter).
-  using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
   //MonoChain for each channel.
   MonoChain leftChain, rightChain; 
 
-  enum ChainPositions {
-    LowCut,
-    Peak,
-    HighCut
-  };
+
   // Audio file playback members
   juce::AudioFormatManager formatManager;
   std::unique_ptr<juce::AudioFormatReader> formatReader;
@@ -96,14 +102,13 @@ private:
   double mySampleRate = 44100.0;
   
   void updatePeakFilter(const ChainSettings& chainSettings);
-  using Coefficients = Filter::CoefficientsPtr;
-  static void updateCoefficients(Coefficients& old, const Coefficients& replacements);
+
   template <int index, typename ChainType, typename CoefficientType>
   void update(ChainType& cutFilter, const CoefficientType& coefficients)
   {
     updateCoefficients(cutFilter.template get<index>().coefficients, coefficients[index]);
     cutFilter.template setBypassed<index>(false);
-    cutFilter.template get<index>().coefficients = *coefficients[index];
+    // cutFilter.template get<index>().coefficients = *coefficients[index];
   }
 
   template <typename ChainType, typename CoefficientType>

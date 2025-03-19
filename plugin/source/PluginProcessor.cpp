@@ -72,22 +72,25 @@ void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String&
   juce::ignoreUnused(index, newName);
 }
 
-
-void AudioPluginAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings) {
-  auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-    mySampleRate,
+Coefficients audio_plugin::makePeakFilter(const ChainSettings& chainSettings, double sampleRate) {
+  return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+    sampleRate,
     chainSettings.peakFreq,
     chainSettings.peakQuality,
     juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels)
   );
+}
+
+void AudioPluginAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings) {
+
+  auto peakCoefficients = makePeakFilter(chainSettings, mySampleRate);
   updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
   updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);  
 }
 
-void AudioPluginAudioProcessor::updateCoefficients(Coefficients& old, const Coefficients& replacements) {
+void audio_plugin::updateCoefficients(Coefficients& old, const Coefficients& replacements) {
   *old = *replacements;
 }
-
 
 void AudioPluginAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettings) {
      //Setting the LowCutFreq coefficients
@@ -209,16 +212,29 @@ bool AudioPluginAudioProcessor::hasEditor() const {
 }
 
 juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor() {
-  // return new AudioPluginAudioProcessorEditor(*this);
-  return new juce::GenericAudioProcessorEditor(*this);
+  return new AudioPluginAudioProcessorEditor(*this);
+  // return new juce::GenericAudioProcessorEditor(*this);
 }
 
-void AudioPluginAudioProcessor::getStateInformation(
-    juce::MemoryBlock& destData) {
+void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
   // You should use this method to store your parameters in the memory block.
   // You could do that either as raw data, or use the XML or ValueTree classes
   // as intermediaries to make it easy to save and load complex data.
-  juce::ignoreUnused(destData);
+  juce::MemoryOutputStream mos(destData, true);
+  apvts.state.writeToStream(mos);
+  // juce::ignoreUnused(destData);
+}
+
+void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
+  // You should use this method to restore your parameters from this memory
+  // block, whose contents will have been created by the getStateInformation()
+  // call.
+  // juce::ignoreUnused(data, sizeInBytes);
+  auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
+  if (tree.isValid()) {
+    apvts.replaceState(tree);
+    updateFilters();
+  }
 }
 
 ChainSettings audio_plugin::getChainSettings(juce::AudioProcessorValueTreeState& apvts) {
@@ -277,13 +293,6 @@ AudioPluginAudioProcessor::createParameterLayout() {
   return layout;
 }
 
-void AudioPluginAudioProcessor::setStateInformation(const void* data,
-                                                    int sizeInBytes) {
-  // You should use this method to restore your parameters from this memory
-  // block, whose contents will have been created by the getStateInformation()
-  // call.
-  juce::ignoreUnused(data, sizeInBytes);
-}
 
 }  // namespace audio_plugin
 

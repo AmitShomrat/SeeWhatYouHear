@@ -104,7 +104,7 @@ thus declare a function that retrieves a parameterLayout ( createParameterLayout
 
 
 DSP:
-1. Since it is a Stereo plugin ( has 2 channels ) each signal processing (class dsp) affect the process over a single channel (mono), unless it declared as a stereo on the documentation. It means that we have to duplicate the processors in order to assign them for both channels.
+1. Since it is a Stereo plugin ( has 2 channels ) each signal processing ( class dsp ) affect the process over a single channel (mono), unless it declared as a stereo on the documentation. It means that we have to duplicate the processors in order to assign them for both channels.
 
 
 2. Within 'PluginProcessor.h' the 'using' keyword is for aliasing types of objects and give them simple reference name (e.g a juce::dsp::IIR::Filter<float> to Filter ).
@@ -139,7 +139,7 @@ Use a enum ChainPositions {LowCut, Peak, HighCut} declared ahead inside 'PluginP
   *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
 
 Setting the LowCut/HighCut filter coefficients - The choice of cut slope is dependant by its order s.t 12 db/oct is using a single filter, 24 db/oct using two filters ( the previous and the next to it ) and so on.. the juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(Freq, sampleRate, order ) retrives array of IIR::Cofficient objects one for each order = 2. Since we have 4 choices (0, 1, 2, 3) we need to add 1 and multiply by 2 to get the right orders (2, 4, 6, 8).
-as we did with the peak; assign a reference to the get 'LowCut' function of the MonoChain, and then setBypassed all 4 'Filters' of the 'CutFilter' by passing the position of it in the Chain. finaly a switch with chainSettings.lowCutSlope will define the choice of the user and respond by setBypassed the right Filters and assign their coeficients to our LowCut Processor. ( Duplications, in advance refactoring )q
+as we did with the peak; assign a reference to the get 'LowCut' function of the MonoChain, and then setBypassed all 4 'Filters' of the 'CutFilter' by passing the position of it in the Chain. finaly a switch with chainSettings.lowCutSlope will define the choice of the user and respond by setBypassed the right Filters and assign their coeficients to our LowCut Processor. ( Duplications, in advance refactoring )
 
 
 5. PROCESS - CONTEXT: 
@@ -149,6 +149,55 @@ In JUCE audio plugin development, processBlock is a crucial virtual method that 
 processBlock - Simply after the cofficients has defined we have to process them :) to do so we wrapping the AudioBuffer& with 'AudiBlock', a dsp class, in order to get left/right blocks using getSingleChannelBlock (#Channel_Number) which correspond to 0,1 respectively. next, create a ProcessContextReplacing<float>(block_obj), finally, invoke 
 processChain.process(context_obj), for both channels.
 SUMMARIZE CONVENTION processChain ( ProcessContext ( block -> buffer ) )  .
+
+
+STORING AND RESTORING A VALUE STATES:
+1. The function getStateInformation(juce::MemoryBlock& destData) used by the host (DAW) to store the current plugin state s.t it will restoe them between sessions. by constructing an MemoryOuputStream and pass it the empty memoryBlock which was provided by the host as well. then we will invoke the function writeToStream by the state ValueTree attribute of our apvts practically saves the current state.
+
+2. Similarly the function setStateInformation(const void* data, int sizeInBytes) invoked by the host when the user is restoring the project, pass a pointer to the binary stored data. Create a treeValue obj to replace it with the default apvts state att, tree.isValid() is use to check the format.. and then updateFilters() resulting the same state of the plugin. 
+
+(Your Plugin Code → MemoryOutputStream → MemoryBlock → Host DAW)
+ 
+GUI:
+We are about to connect our parameters to a the GUI sliders for this part will use the stand_alone target instead of the host to confirm the positions and look of our plugin we will change the createEditor function to return new AudioPluginAudioProcessorEditor(*this) instead of a generic as we used before.
+1. Go to the pluginEditor.cpp and inside of the constructor set the size with setSize(600, 400) to get a bigger window, declare of a new struct class called CustomRotarySlider inside pluginEditor.h:
+
+struct CustomRotarySlider : juce::Slider {
+  CustomRotarySlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag,
+  juce::Slider::TextEntryBoxPosition::NoTextBox)
+  {
+
+  }
+
+CustomRotarySlider inherits from JUCE's Slider class, allowing you to customize its appearance and behavior.
+Sets Slider Style: In the constructor, it initializes the base Slider with:
+SliderStyle::RotaryHorizontalVerticalDrag: Creates a circular knob that users can drag in both horizontal and vertical directions
+TextEntryBoxPosition::NoTextBox: Removes the default text box that would show numerical values
+Custom UI Element: This creates specialized rotary knobs commonly used in audio plugins for parameters like:
+Frequency controls
+Gain/volume adjustments
+Q/resonance settings
+Filter slope selection
+The empty constructor body { } means you haven't added any custom behavior yet, but you could extend this class to add custom drawing, tooltips, or other UI enhancements.
+This is a standard approach in JUCE audio plugin development to create specialized UI controls that match the conventions of professional audio software.
+
+2. Declare private slides for each of our parameters from the type of CustomRotarySlider. A private function that returns a vector of juce::components* pointers, simply returns references of our sliders objects we've just declared, we are using it to pass each slider to the addAndMakeVisible(comp) function inside of our editor constructor.
+
+3. Thus the sliders are visible and we able to position their lay out. This is heppening inside of the resized funcion:
+  First, we will use the bounds = getLocalBounds(); this function returns a Rectangle<int> obj that represents the dimentions we've setted in the constructor ( e.g the start position is (0,0) the right to corner is (0,400) the left down (600,0) and the right down is (600,400) ).
+  The concept is to first edit the bounds and then set them for each slider.. the responseArea is a placeHolder 1/3 from the top (later used for the analyzer) auto responseArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.33)) this a Rectangle<int> positioned on the top 33% from the top of bounds dimention its importent to noitce that the left size of bounds now is 2/3, because it is preserving the proportions, now if we will take a 0.5 from the hight of bounds it will take a half size from the remaining 2/3 and so on ..
+
+4. Attachments - A SliderAttachment (formally juce::AudioProcessorValueTreeState::SliderAttachment) is a specialized class in JUCE that creates and manages a connection between:
+- A UI element (a Slider component)
+- An underlying parameter in your audio plugin (stored in the AudioProcessorValueTreeState)
+We each parameter an attachment and initialize them in the initilize line (editor constructor). 
+
+5. Our next goal is to display the response curve of our filters, to do so, we need to give the editor its own instance of monoChain to do that we need to make all the stuff that defines MonoChain public ( move its using stuff and the enam outside of the class, within the processor ) and define MonoChain monoChain a private member of pluginEditor.
+Nevigate paint function inside PluginEditor.cpp
+
+
+
+
 
 
 
