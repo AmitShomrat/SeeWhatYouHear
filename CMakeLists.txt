@@ -49,10 +49,4 @@ add_subdirectory(plugin)
 # Adds all the targets configured in the "test" folder.
 add_subdirectory(test)
 
-# Add custom target for debugging with AudioPluginHost and saved filtergraph
-add_custom_target(debug_with_host
-    COMMAND ${CMAKE_SOURCE_DIR}/AudioFilePlayer/build-host/AudioPluginHost_build/AudioPluginHost_artefacts/Debug/AudioPluginHost.exe ${CMAKE_SOURCE_DIR}/Plug-in-host-preset.filtergraph
-    DEPENDS AudioPlugin_VST3
-    COMMENT "Launching AudioPluginHost with saved filtergraph for debugging"
-    VERBATIM
-)
+

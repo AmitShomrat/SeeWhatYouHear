@@ -35,6 +35,10 @@ enum ChainPositions {
     HighCut
   };
 
+  using Coefficients = Filter::CoefficientsPtr;
+  void updateCoefficients(Coefficients& old, const Coefficients& replacements);
+  Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
+
 class AudioPluginAudioProcessor : public juce::AudioProcessor {
 public:
   AudioPluginAudioProcessor();
@@ -98,14 +102,13 @@ private:
   double mySampleRate = 44100.0;
   
   void updatePeakFilter(const ChainSettings& chainSettings);
-  using Coefficients = Filter::CoefficientsPtr;
-  static void updateCoefficients(Coefficients& old, const Coefficients& replacements);
+
   template <int index, typename ChainType, typename CoefficientType>
   void update(ChainType& cutFilter, const CoefficientType& coefficients)
   {
     updateCoefficients(cutFilter.template get<index>().coefficients, coefficients[index]);
     cutFilter.template setBypassed<index>(false);
-    cutFilter.template get<index>().coefficients = *coefficients[index];
+    // cutFilter.template get<index>().coefficients = *coefficients[index];
   }
 
   template <typename ChainType, typename CoefficientType>

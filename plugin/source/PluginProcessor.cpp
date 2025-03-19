@@ -72,22 +72,25 @@ void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String&
   juce::ignoreUnused(index, newName);
 }
 
-
-void AudioPluginAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings) {
-  auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-    mySampleRate,
+Coefficients audio_plugin::makePeakFilter(const ChainSettings& chainSettings, double sampleRate) {
+  return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+    sampleRate,
     chainSettings.peakFreq,
     chainSettings.peakQuality,
     juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels)
   );
+}
+
+void AudioPluginAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings) {
+
+  auto peakCoefficients = makePeakFilter(chainSettings, mySampleRate);
   updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
   updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);  
 }
 
-void AudioPluginAudioProcessor::updateCoefficients(Coefficients& old, const Coefficients& replacements) {
+void audio_plugin::updateCoefficients(Coefficients& old, const Coefficients& replacements) {
   *old = *replacements;
 }
-
 
 void AudioPluginAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettings) {
      //Setting the LowCutFreq coefficients

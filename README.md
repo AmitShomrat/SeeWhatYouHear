@@ -104,7 +104,7 @@ thus declare a function that retrieves a parameterLayout ( createParameterLayout
 
 
 DSP:
-1. Since it is a Stereo plugin ( has 2 channels ) each signal processing (class dsp) affect the process over a single channel (mono), unless it declared as a stereo on the documentation. It means that we have to duplicate the processors in order to assign them for both channels.
+1. Since it is a Stereo plugin ( has 2 channels ) each signal processing ( class dsp ) affect the process over a single channel (mono), unless it declared as a stereo on the documentation. It means that we have to duplicate the processors in order to assign them for both channels.
 
 
 2. Within 'PluginProcessor.h' the 'using' keyword is for aliasing types of objects and give them simple reference name (e.g a juce::dsp::IIR::Filter<float> to Filter ).
@@ -191,6 +191,13 @@ This is a standard approach in JUCE audio plugin development to create specializ
 - A UI element (a Slider component)
 - An underlying parameter in your audio plugin (stored in the AudioProcessorValueTreeState)
 We each parameter an attachment and initialize them in the initilize line (editor constructor). 
+
+5. Our next goal is to display the response curve of our filters, to do so, we need to give the editor its own instance of monoChain to do that we need to make all the stuff that defines MonoChain public ( move its using stuff and the enam outside of the class, within the processor ) and define MonoChain monoChain a private member of pluginEditor.
+Nevigate paint function inside PluginEditor.cpp
+
+
+
+
 
 
 
