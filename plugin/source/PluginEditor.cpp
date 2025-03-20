@@ -138,6 +138,13 @@ void AudioPluginAudioProcessorEditor::timerCallback() {
     auto chainSettings = getChainSettings(processorRef.apvts);
     auto peakCoefficients = makePeakFilter(chainSettings, processorRef.getSampleRate());
     updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+
+    auto lowCutCoefficients = makeLowCutFilter(chainSettings, processorRef.getSampleRate());
+    auto highCutCoefficients = makeHighCutFilter(chainSettings, processorRef.getSampleRate());
+
+    updateCutFilters(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
+    updateCutFilters(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
+
     repaint();
     //signal a repaint
   }
