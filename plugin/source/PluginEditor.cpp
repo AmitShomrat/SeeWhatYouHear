@@ -18,13 +18,25 @@ highCutSlopeSliderAttachment(processorRef.apvts, "HighCut Slope", highCutSlopeSl
     this -> addAndMakeVisible(comp);
   }
 
+  const auto& params = processorRef.getParameters();
+  for(auto param : params) {
+    param -> addListener(this);
+  }
+
+  startTimerHz(60);
 
   // Make sure that before the constructor has finished, you've set the
   // editor's size to whatever you need it to be.
   setSize(600, 400);
 }
 
-AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {}
+AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() 
+{
+  const auto& params = processorRef.getParameters();
+  for(auto param : params) {
+    param -> removeListener(this);
+  }
+}
 
 void AudioPluginAudioProcessorEditor::paint(juce::Graphics& g) {
   using namespace juce;
@@ -76,13 +88,15 @@ void AudioPluginAudioProcessorEditor::paint(juce::Graphics& g) {
 
   const double outputMin = responseArea.getBottom();
   const double outputMax = responseArea.getY();
-  auto map = [outputMin, outputMax](double input) {
+  auto map = [outputMin, outputMax](double input)
+   {
     return juce::jmap(input, -24.0, 24.0, outputMin, outputMax);
   };
 
   responseCurve.startNewSubPath(static_cast<float>(responseArea.getX()), static_cast<float>(map(mags.front())));
 
-  for ( size_t i = 1; i < mags.size(); ++i) {
+  for ( size_t i = 1; i < mags.size(); ++i)
+  {
     responseCurve.lineTo(static_cast<float>(responseArea.getX() + i), static_cast<float>(map(mags[i])));
   }
 
@@ -119,7 +133,12 @@ void AudioPluginAudioProcessorEditor::parameterValueChanged (int parameterIndex,
 
 void AudioPluginAudioProcessorEditor::timerCallback() {
   if(parametersChanged.compareAndSetBool(false, true)) {
+    DBG("Parameter changed");
     //update the monochain
+    auto chainSettings = getChainSettings(processorRef.apvts);
+    auto peakCoefficients = makePeakFilter(chainSettings, processorRef.getSampleRate());
+    updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+    repaint();
     //signal a repaint
   }
 }

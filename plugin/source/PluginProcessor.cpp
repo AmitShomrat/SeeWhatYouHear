@@ -100,8 +100,8 @@ void AudioPluginAudioProcessor::updateLowCutFilters(const ChainSettings& chainSe
   auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
   auto& rightLowCut = rightChain.get<ChainPositions::LowCut>();
 
-  AudioPluginAudioProcessor::updateCutFilters(leftLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
-  AudioPluginAudioProcessor::updateCutFilters(rightLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
+  updateCutFilters(leftLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
+  updateCutFilters(rightLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
 
 }
 
@@ -110,10 +110,10 @@ void AudioPluginAudioProcessor::updateHighCutFilters(const ChainSettings& chainS
                                                                                                       mySampleRate,2 * (1 + chainSettings.highCutSlope) );
 
   auto& leftHighCut = leftChain.get<ChainPositions::HighCut>();
-  AudioPluginAudioProcessor::updateCutFilters(leftHighCut, highCutCoefficients, chainSettings.highCutSlope );
+  updateCutFilters(leftHighCut, highCutCoefficients, chainSettings.highCutSlope );
 
   auto& rightHighCut = rightChain.get<ChainPositions::HighCut>();
-  AudioPluginAudioProcessor::updateCutFilters(rightHighCut, highCutCoefficients, chainSettings.highCutSlope );
+  updateCutFilters(rightHighCut, highCutCoefficients, chainSettings.highCutSlope );
 
 }
 
