@@ -160,6 +160,11 @@ STORING AND RESTORING A VALUE STATES:
  
 GUI:
 We are about to connect our parameters to a the GUI sliders for this part will use the stand_alone target instead of the host to confirm the positions and look of our plugin we will change the createEditor function to return new AudioPluginAudioProcessorEditor(*this) instead of a generic as we used before.
+
+Abstract:
+The class pluginEditor is a Component class, thus it inherits Methods such as paint(), resized(), getLocalBounds() and all the layout graphics and drawing related functions.
+This concept is crutial to understand, by default nothing will conenct nthe context of the AudioProcessor class, we need to create its own behaveiour which will seems (Fast enough) to be perfect correlated with the processor.
+
 1. Go to the pluginEditor.cpp and inside of the constructor set the size with setSize(600, 400) to get a bigger window, declare of a new struct class called CustomRotarySlider inside pluginEditor.h:
 
 struct CustomRotarySlider : juce::Slider {
@@ -190,14 +195,56 @@ This is a standard approach in JUCE audio plugin development to create specializ
 4. Attachments - A SliderAttachment (formally juce::AudioProcessorValueTreeState::SliderAttachment) is a specialized class in JUCE that creates and manages a connection between:
 - A UI element (a Slider component)
 - An underlying parameter in your audio plugin (stored in the AudioProcessorValueTreeState)
-We each parameter an attachment and initialize them in the initilize line (editor constructor). 
-
-5. Our next goal is to display the response curve of our filters, to do so, we need to give the editor its own instance of monoChain to do that we need to make all the stuff that defines MonoChain public ( move its using stuff and the enam outside of the class, within the processor ) and define MonoChain monoChain a private member of pluginEditor.
-Nevigate paint function inside PluginEditor.cpp
+Each parameter from our apvts is connected for each slider wwe are performing that as part of the initial line (editor constructor). 
 
 
 
 
+A responseCurve is a line that changing and bending as the filters changed to visualize the Filters action on the current Freq image, or block .. 
+5. Our next goal is to display the response curve of our filters, to do so, we need to give the editor its own instance of monoChain we aren't performing a DSP but we need to clone the same behaviour (we need the magnitudes of Freq that correspond each hight fot each pixel that belongs to the width of the responseArea). Need to make all MonoChain definisions a public/"Free" ( move its using stuff and the enam outside of the class, within the processor ) 
+Then define MonoChain monoChain used as a private member of pluginEditor.
+
+6. 
+Nevigate paint function inside PluginEditor.cpp. since we've allocated the responseArea in the resized now we have to focus on the drawing structure and logic. first thing is to color the background with black colour through g the Graphic pointer then we store a pointer that hold the width of the respone area (use later) also create pointers for each process filter from our monoChai.
+The vector mags is used to store the magnitudes. run over all width values with a for loop and compete for each value its corresponding Freq normlized between 20 to 20000 using the mapToLog10(fruction between 0 - 1, startRange, endRange).
+at the begining of iter the mag is 1.f means that filter isn't yet affects this current freq.
+then we have to check for each filter if not bypassed then computes its cofficient magnitudes and update mag to multiplication by previous mag. do the same for lowcut highcut all slops options. At the end of the for we have to store the gainToDecibeld value inside the mags[i] .
+
+Now we need to edit the Path object (A sequence of lines) the idea is to gives it a starting point and then the point of the next dot corresponding the mags vector that repreenting the hight. 
+
+  const double outputMin = responseArea.getBottom();
+  const double outputMax = responseArea.getY();
+
+these are the maximum and minimum the Path can reach. 
+
+The map is an funcional object that needs a value input and returns the corresponding double value for a normelized values between (-24 , 24 our plugins dynamic range this is the mags decibels range) to pixels values. 
+
+With this we will define the start point of Path using the StartNewSubPath () pass (x,y) of the beginning using the left most area responseArea.getX() and the value outcom of map(mags.front()) front() is a vector member function that returns the first object of a vector.
+
+finelly, run over all mags values and define each pixel's hight using lineTo (simply drawing line between dots) using the (x,y) again but adding i value as x and the current y value as map(mags[i]). all of the castings are used as a demend of these types of function.
+
+setColour is used before a drawing. 
+draw a rectangle that represent the responseArea by passing a rectangle and settings of corner and thickness
+set the line to white and then draw the path using the stroklePath by passing a Path obj and a pathType (float thikcness value).
+
+
+7. Listener and Timer !
+In order to get a real time response curve we need to adjust a mechanism of listeners timers. the concept is to connect each parameter of our process to a listener s.t any parameter modification will make an atomic flag to change its state otherwise the cached values are just fine. 
+On the other hand, a timer will check for every period if the flag has changed. 
+To do that we just have to inhert this juce classes and implement their pure virtuals functions.
+The piece of code of our Component-Listener-Timer object.
+First we are adding for each parameter the listener to its listeners lists, getParameters() retrives the list of pointers for all the processor params and we simply assign our Listener-Component using for each and addListener(this).
+Then we defin that a Timer with the startTimerHz(60) that will invoke the function timercallback 60 time a second which is conciderd as fast enough to update the responseCurve for Humens.
+
+Noitce that on the destructor we have to unsigned our Listener-Component since his life cycle hase done.
+Its the same code but the use of RemoveLisenter(this).
+NOW OUR COMPONENT LISTENS TO ALL PARAMS CHANGES .
+
+Implement the funcion that change the Atomic flag, parameterValueChanged (int parameterIndex, float newValue) this is a Listener member pure virtual. winthin this we will use the parameterChanged.set(true) used as an indicator.
+
+Implementing the function timerCallback () the pure virtual of Timer. if the flage is true invoke and set to false; first we have to refactor our processor and create the makePeakFilter makeLowCutFilter makeHighCutFilter a free functions in order to retrive our actual process coefficients. we also  make the updateCoefficients free function as well to update monoChain (of the Component) Cofficient correlated to the processor's monoChain Coefficients, finelly we just have to call the function repaint().
+
+STEPS 6 and 7 ARE related to Components which means we will use it again with the simulation :) 
 
 
 

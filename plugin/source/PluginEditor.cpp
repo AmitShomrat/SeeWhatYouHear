@@ -3,17 +3,19 @@
 
 namespace audio_plugin {
 
+
+//This Component is a listener and Timer object.
 ResponseCurveComponent::ResponseCurveComponent(AudioPluginAudioProcessor& p)
 : processorRef(p)
 {
   const auto& params = processorRef.getParameters();
   for(auto param : params) {
-    param -> addListener(this);
+    param -> addListener(this);// To observe the changes in the parameters.
   }
 
-  startTimerHz(60);
+  startTimerHz(60); //timerCallback function is called 60 times per second.
 }
-
+//This function is called when the parameter value changes.
 void ResponseCurveComponent::parameterValueChanged (int parameterIndex, float newValue) {
   juce::ignoreUnused(parameterIndex, newValue);
   parametersChanged.set(true);
@@ -27,7 +29,7 @@ ResponseCurveComponent::~ResponseCurveComponent() {
 }
 
 void ResponseCurveComponent::timerCallback() {
-  if(parametersChanged.compareAndSetBool(false, true)) {
+  if(parametersChanged.compareAndSetBool(false, true)) {// If the parameter value has changed, then update the monochain.
     DBG("Parameter changed");
     //update the monochain
     auto chainSettings = getChainSettings(processorRef.apvts);
@@ -111,16 +113,23 @@ void ResponseCurveComponent::paint(juce::Graphics& g) {
 }
 
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
-    : juce::AudioProcessorEditor(&p), 
-      processorRef(p),
+    : juce::AudioProcessorEditor(&p), processorRef(p),
+      peakFreqSlider(*processorRef.apvts.getParameter("Peak Freq"), "Hz"),
+      peakGainSlider(*processorRef.apvts.getParameter("Peak Gain"), "dB"),
+      peakQualitySlider(*processorRef.apvts.getParameter("Peak Quality"), ""),
+      lowCutFreqSlider(*processorRef.apvts.getParameter("LowCut Freq"), "Hz"),
+      highCutFreqSlider(*processorRef.apvts.getParameter("HighCut Freq"), "Hz"),
+      lowCutSlopeSlider(*processorRef.apvts.getParameter("LowCut Slope"), "dB/Oct"),
+      highCutSlopeSlider(*processorRef.apvts.getParameter("HighCut Slope"), "dB/Oct"),
+
       responseCurveComponent(p),
-      peakFreqSliderAttachment(p.apvts, "Peak Freq", peakFreqSlider),
-      peakGainSliderAttachment(p.apvts, "Peak Gain", peakGainSlider),
-      peakQualitySliderAttachment(p.apvts, "Peak Quality", peakQualitySlider),
-      lowCutFreqSliderAttachment(p.apvts, "LowCut Freq", lowCutFreqSlider),
-      highCutFreqSliderAttachment(p.apvts, "HighCut Freq", highCutFreqSlider),
-      lowCutSlopeSliderAttachment(p.apvts, "LowCut Slope", lowCutSlopeSlider),
-      highCutSlopeSliderAttachment(p.apvts, "HighCut Slope", highCutSlopeSlider)
+      peakFreqSliderAttachment(processorRef.apvts, "Peak Freq", peakFreqSlider),
+      peakGainSliderAttachment(processorRef.apvts, "Peak Gain", peakGainSlider),
+      peakQualitySliderAttachment(processorRef.apvts, "Peak Quality", peakQualitySlider),
+      lowCutFreqSliderAttachment(processorRef.apvts, "LowCut Freq", lowCutFreqSlider),
+      highCutFreqSliderAttachment(processorRef.apvts, "HighCut Freq", highCutFreqSlider),
+      lowCutSlopeSliderAttachment(processorRef.apvts, "LowCut Slope", lowCutSlopeSlider),
+      highCutSlopeSliderAttachment(processorRef.apvts, "HighCut Slope", highCutSlopeSlider)
 {
   juce::ignoreUnused(processorRef);
 
@@ -128,7 +137,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     this -> addAndMakeVisible(comp);
   }
 
-  setSize(600, 400);
+  setSize(600,400);
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() 
@@ -149,8 +158,9 @@ void AudioPluginAudioProcessorEditor::resized() {
   auto responseArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.33));
 
   responseCurveComponent.setBounds(responseArea);
-
+  //Taking 1/3 of the width of the bounds and removing it from the left
   auto lowCutArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
+  //Taking 1/2 of the remaining width of the bounds and removing it from the right
   auto highCutArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.5));
   
   lowCutFreqSlider.setBounds(lowCutArea.removeFromTop(static_cast<int>(lowCutArea.getHeight() * 0.5)));
@@ -164,7 +174,7 @@ void AudioPluginAudioProcessorEditor::resized() {
 }
 
 std::vector<juce::Component*> AudioPluginAudioProcessorEditor::getComps() {
-  //each pointer is a reference to a slider object
+  //each pointer is a reference to a component object ( Slider is a component )
   return {
     &peakFreqSlider,
     &peakGainSlider,
