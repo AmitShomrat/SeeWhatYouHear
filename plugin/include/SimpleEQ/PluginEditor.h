@@ -57,6 +57,7 @@ juce::AudioProcessorParameter::Listener, juce::Timer
   void timerCallback() override;
 
   void paint(juce::Graphics&) override;
+  void updateChain();
   private:
     AudioPluginAudioProcessor& processorRef;
     juce::Atomic<bool> parametersChanged {false};

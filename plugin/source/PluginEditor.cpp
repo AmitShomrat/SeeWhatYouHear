@@ -124,7 +124,7 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
     // g.setColour(Colours::white);
     // g.drawRect(r); //Debugging tests.
 
-    g.setColour(Colour(0u, 127u, 1u)) ;
+    g.setColour(juce::Colours::red) ;
     g.setFont(static_cast<float>(getTextHeight()));
     g.drawFittedText(str, r.toNearestInt(), juce::Justification::centred, 1);
   }                                  
@@ -187,6 +187,7 @@ ResponseCurveComponent::ResponseCurveComponent(AudioPluginAudioProcessor& p)
     param -> addListener(this);// To observe the changes in the parameters.
   }
 
+  updateChain();
   startTimerHz(60); //timerCallback function is called 60 times per second.
 }
 //This function is called when the parameter value changes.
@@ -206,6 +207,15 @@ void ResponseCurveComponent::timerCallback() {
   if(parametersChanged.compareAndSetBool(false, true)) {// If the parameter value has changed, then update the monochain.
     DBG("Parameter changed");
     //update the monochain
+    updateChain();
+    repaint();
+    //signal a repaint
+  }
+}
+
+void ResponseCurveComponent::updateChain() 
+{
+
     auto chainSettings = getChainSettings(processorRef.apvts);
     auto peakCoefficients = makePeakFilter(chainSettings, processorRef.getSampleRate());
     updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
@@ -216,11 +226,7 @@ void ResponseCurveComponent::timerCallback() {
     updateCutFilters(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
     updateCutFilters(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
 
-    repaint();
-    //signal a repaint
-  }
 }
-
 void ResponseCurveComponent::paint(juce::Graphics& g) {
   using namespace juce;
   g.fillAll(Colours::black);
@@ -345,9 +351,11 @@ void AudioPluginAudioProcessorEditor::resized() {
   // subcomponents in your editor..
 
   auto bounds = getLocalBounds();
-  auto responseArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.33));
+  float hRatio = 30 / 100.f; //JUCE_LIVE_CONSTANT(33) / 100.f;
+  auto responseArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * hRatio));
 
   responseCurveComponent.setBounds(responseArea);
+  bounds.removeFromTop(5);
   //Taking 1/3 of the width of the bounds and removing it from the left
   auto lowCutArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
   //Taking 1/2 of the remaining width of the bounds and removing it from the right
