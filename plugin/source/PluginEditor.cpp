@@ -24,7 +24,7 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
   if(auto* rswl = dynamic_cast<RotarySliderWithLabels*>(&slider)) {
 
     auto center = bounds.getCentre();
-    // A reference to position of a slider position object desining a tall and thin rectangle.
+    // A reference to the slider position object designing a tall and thin rectangle.
     Path p; 
 
     Rectangle<float> r;
@@ -43,13 +43,15 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
 
     g.fillPath(p);
 
+    //Adding text of value to the slider.
     g.setFont(static_cast<float>(rswl -> getTextHeight()));
     auto text = rswl -> getDisplayString();
-    
-    // Replace deprecated getStringWidth with GlyphArrangement
+
+    //Refactor is needed here.
     juce::GlyphArrangement glyphs;
     glyphs.addFittedText(g.getCurrentFont(), text, 0.0f, 0.0f, 1000.0f, 100.0f, juce::Justification::left, 1);
     auto textWidth = glyphs.getBoundingBox(0, -1, true).getWidth();
+    //--------------------------------
 
     r.setSize(static_cast<float>(textWidth) + 4, static_cast<float>(rswl -> getTextHeight()) + 2);
     r.setCentre(bounds.getCentre());
@@ -77,9 +79,9 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
   auto sliderBounds = getSliderBounds();
 
   // g.setColour(Colours::red);
-  // g.drawRect(getLocalBounds()); 
+  // g.drawRect(getLocalBounds()); //Debugging tests.
   // g.setColour(Colours::white);
-  // g.drawRect(sliderBounds);
+  // g.drawRect(sliderBounds); //Debugging tests.
 
 
 
@@ -92,6 +94,40 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
                                     startAng, 
                                     endAng, 
                                     *this);
+  auto center = sliderBounds.toFloat().getCentre();
+  auto radius = sliderBounds.getWidth() * 0.5;
+
+
+  auto numChoices = labels.size(); 
+  for(int i = 0; i < numChoices; ++i )
+  {
+    auto pos = labels[i].pos;
+    jassert(0.f <= pos);
+    jassert(pos <= 1.f);
+
+    auto ang = jmap(pos, 0.f, 1.f, startAng, endAng);
+    auto c = center.getPointOnCircumference(static_cast<float>(radius) + getTextHeight() * 0.5f + 1, ang);
+
+    Rectangle<float> r;
+    auto str = labels[i].label;
+    
+    //Refactor is needed here.
+    juce::GlyphArrangement glyphs;
+    glyphs.addFittedText(g.getCurrentFont(), str, 0.0f, 0.0f, 1000.0f, 100.0f, juce::Justification::left, 1);
+    auto textWidth = glyphs.getBoundingBox(0, -1, true).getWidth();
+    //--------------------------------
+
+    r.setSize(static_cast<float>(textWidth), static_cast<float>(getTextHeight()));
+    r.setCentre(c);
+    r.setY(r.getY() + getTextHeight());
+
+    // g.setColour(Colours::white);
+    // g.drawRect(r); //Debugging tests.
+
+    g.setColour(Colour(0u, 127u, 1u)) ;
+    g.setFont(static_cast<float>(getTextHeight()));
+    g.drawFittedText(str, r.toNearestInt(), juce::Justification::centred, 1);
+  }                                  
 }
 
 juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
@@ -269,6 +305,22 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
       lowCutSlopeSliderAttachment(processorRef.apvts, "LowCut Slope", lowCutSlopeSlider),
       highCutSlopeSliderAttachment(processorRef.apvts, "HighCut Slope", highCutSlopeSlider)
 {
+  // Add labels to all sliders
+  peakFreqSlider.labels.add({0.f, "20Hz"});
+  peakFreqSlider.labels.add({1.f, "20kHz"});
+  lowCutFreqSlider.labels.add({0.f, "20Hz"});
+  lowCutFreqSlider.labels.add({1.f, "20kHz"});
+  highCutFreqSlider.labels.add({0.f, "20Hz"});
+  highCutFreqSlider.labels.add({1.f, "20kHz"});
+  peakGainSlider.labels.add({0.f, "-24dB"});
+  peakGainSlider.labels.add({1.f, "+24dB"});
+  peakQualitySlider.labels.add({0.f, "0.1"});
+  peakQualitySlider.labels.add({1.f, "10.0"});
+  lowCutSlopeSlider.labels.add({0.f, "12"});
+  lowCutSlopeSlider.labels.add({1.f, "48"});
+  highCutSlopeSlider.labels.add({0.f, "12"});
+  highCutSlopeSlider.labels.add({1.f, "48"});
+
   juce::ignoreUnused(processorRef);
 
   for(auto* comp : getComps()) {

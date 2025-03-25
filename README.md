@@ -205,7 +205,7 @@ A responseCurve is a line that changing and bending as the filters changed to vi
 Then define MonoChain monoChain used as a private member of pluginEditor.
 
 6. 
-Nevigate paint function inside PluginEditor.cpp. since we've allocated the responseArea in the resized now we have to focus on the drawing structure and logic. first thing is to color the background with black colour through g the Graphic pointer then we store a pointer that hold the width of the respone area (use later) also create pointers for each process filter from our monoChai.
+Nevigate to the paint function inside PluginEditor.cpp. since we've allocated the responseArea in the resized now we have to focus on the drawing structure and logic. first thing is to color the background with black colour through g the Graphic pointer then we store a pointer that hold the width of the respone area (use later) also create pointers for each process filter from our monoChai.
 The vector mags is used to store the magnitudes. run over all width values with a for loop and compete for each value its corresponding Freq normlized between 20 to 20000 using the mapToLog10(fruction between 0 - 1, startRange, endRange).
 at the begining of iter the mag is 1.f means that filter isn't yet affects this current freq.
 then we have to check for each filter if not bypassed then computes its cofficient magnitudes and update mag to multiplication by previous mag. do the same for lowcut highcut all slops options. At the end of the for we have to store the gainToDecibeld value inside the mags[i] .
