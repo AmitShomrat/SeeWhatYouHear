@@ -21,25 +21,47 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
   g.setColour(Colours::white);
   g.drawEllipse(bounds, 1.f);
 
-  auto center = bounds.getCentre();
-  // A reference to position of a slider position object.
-  Path p; 
+  if(auto* rswl = dynamic_cast<RotarySliderWithLabels*>(&slider)) {
 
-  Rectangle<float> r;
-  r.setLeft(center.getX() - 2);
-  r.setRight(center.getX() + 2);
-  r.setTop(bounds.getY());
-  r.setBottom(center.getY());
+    auto center = bounds.getCentre();
+    // A reference to position of a slider position object desining a tall and thin rectangle.
+    Path p; 
 
-  p.addRectangle(r);
-  //Debugging tests.
-  jassert(rotaryStartAngle < rotaryEndAngle);
+    Rectangle<float> r;
+    r.setLeft(center.getX() - 2);
+    r.setRight(center.getX() + 2);
+    r.setTop(bounds.getY());
+    r.setBottom(center.getY() - static_cast<float>(rswl -> getTextHeight()) * 0.5f);
 
-  auto sliderAngRad = jmap(sliderPosProportional, 0.0f, 1.0f, rotaryStartAngle, rotaryEndAngle);
+    p.addRoundedRectangle(r, 2.f);
+    //Debugging tests.
+    jassert(rotaryStartAngle < rotaryEndAngle);
 
-  p.applyTransform(AffineTransform().rotated(sliderAngRad, center.getX(), center.getY()));
+    auto sliderAngRad = jmap(sliderPosProportional, 0.0f, 1.0f, rotaryStartAngle, rotaryEndAngle);
 
-  g.fillPath(p);
+    p.applyTransform(AffineTransform().rotated(sliderAngRad, center.getX(), center.getY()));
+
+    g.fillPath(p);
+
+    g.setFont(static_cast<float>(rswl -> getTextHeight()));
+    auto text = rswl -> getDisplayString();
+    
+    // Replace deprecated getStringWidth with GlyphArrangement
+    juce::GlyphArrangement glyphs;
+    glyphs.addFittedText(g.getCurrentFont(), text, 0.0f, 0.0f, 1000.0f, 100.0f, juce::Justification::left, 1);
+    auto textWidth = glyphs.getBoundingBox(0, -1, true).getWidth();
+
+    r.setSize(static_cast<float>(textWidth) + 4, static_cast<float>(rswl -> getTextHeight()) + 2);
+    r.setCentre(bounds.getCentre());
+    
+    g.setColour(Colours::black);
+    g.fillRect(r);
+
+    g.setColour(Colours::white);
+    g.drawFittedText(text, r.toNearestInt(), juce::Justification::centred, 1);
+  }
+
+  
   juce::ignoreUnused(sliderPosProportional, rotaryStartAngle, rotaryEndAngle, slider);
 }
 
@@ -83,9 +105,14 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
   r.setSize(size, size);
   r.setCentre(bounds.getCentreX(), 0);
 
-  // r.setY(2);
+  r.setY(2); //To offset the text from the top of the slider.
 
   return r;
+}
+
+juce::String RotarySliderWithLabels::getDisplayString() const 
+{
+  return juce::String(getValue());
 }
 
 //============================================================================================================================
