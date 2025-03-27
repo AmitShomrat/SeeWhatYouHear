@@ -231,7 +231,10 @@ void ResponseCurveComponent::paint(juce::Graphics& g) {
   using namespace juce;
   g.fillAll(Colours::black);
 
-  auto responseArea = getLocalBounds();
+  g.drawImage(background, getLocalBounds().toFloat());
+
+  // auto responseArea = getLocalBounds();
+  auto responseArea = getAnalysisArea();
   
   auto w = responseArea.getWidth();
 
@@ -287,11 +290,85 @@ void ResponseCurveComponent::paint(juce::Graphics& g) {
   }
 
   g.setColour(Colours::orange);
-  g.drawRoundedRectangle(responseArea.toFloat(), 4.f, 1.f);
+  g.drawRoundedRectangle(getRenderArea().toFloat(), 4.f, 1.f);
   g.setColour(Colours::white);
   g.strokePath(responseCurve, PathStrokeType(2.f));
 }
 
+void ResponseCurveComponent::resized() 
+{
+  using namespace juce;
+  background = Image(Image::PixelFormat::RGB, getWidth(), getHeight(), true);
+
+  Graphics g(background);
+  g.fillAll(Colours::black);
+  Array<float> freqs
+  {
+    20.0f, 30.0f, 40.0f, 50.0f, 100.0f,
+    200.0f, 300.0f, 400.0f, 500.0f, 1000.0f, 
+    2000.0f, 3000.0f, 4000.0f, 5000.0f, 10000.0f, 
+    20000.0f
+  };
+
+  auto renderArea = getAnalysisArea();
+  auto left = renderArea.getX();
+  auto right = renderArea.getRight();
+  auto top = renderArea.getY();
+  auto bottom = renderArea.getBottom();
+  auto width = renderArea.getWidth();
+
+  Array<float> xs;
+  for(auto f : freqs)
+  {
+    auto normX = mapFromLog10<float>(f, 20.0f, 20000.0f);
+    xs.add(left + width * normX);
+  }
+
+  g.setColour(Colours::dimgrey);
+  for ( auto x :freqs)
+  {
+    // auto normX = mapFromLog10<float>(f, 20.0f, 20000.0f);
+    // juce::ignoreUnused(normX);
+
+    g.drawVerticalLine(static_cast<int>(x), static_cast<float>(top), static_cast<float>(bottom));
+  }
+  
+  Array<float> gains
+  {
+    -24.0f, -12.0f, 0.0f, 12.0f, 24.0f
+  };
+
+  for ( auto gDb :gains)
+  {
+    auto y = jmap(gDb, -24.0f, 24.0f, float(bottom), float(top));
+
+    g.setColour(gDb == 0.f ? Colours::red : Colours::darkgrey);
+    g.drawHorizontalLine(static_cast<int>(y), static_cast<float>(left), static_cast<float>(right));
+
+  }
+
+  g.drawRect(getAnalysisArea());
+}
+
+juce::Rectangle<int> ResponseCurveComponent::getRenderArea()
+{
+  auto bounds = getLocalBounds();
+  // bounds.reduce(10 ,/*JUCE_LIVE_CONSTANT(5)*/
+                //  8 /*JUCE_LIVE_CONSTANT(5)*/);
+  bounds.removeFromTop(12);
+  bounds.removeFromBottom(2);
+  bounds.removeFromLeft(20);
+  bounds.removeFromRight(20);
+  return bounds;
+}
+
+juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
+{
+  auto bounds = getRenderArea();
+  bounds.removeFromTop(4);
+  bounds.removeFromBottom(4);
+  return bounds;
+}
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
     : juce::AudioProcessorEditor(&p), processorRef(p),
       peakFreqSlider(*processorRef.apvts.getParameter("Peak Freq"), "Hz"),

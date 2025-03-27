@@ -57,11 +57,21 @@ juce::AudioProcessorParameter::Listener, juce::Timer
   void timerCallback() override;
 
   void paint(juce::Graphics&) override;
-  void updateChain();
+
+  void resized() override;
   private:
     AudioPluginAudioProcessor& processorRef;
     juce::Atomic<bool> parametersChanged {false};
+ 
     MonoChain monoChain;
+
+    void updateChain();
+
+    juce::Image background;
+
+    juce::Rectangle<int> getRenderArea();
+
+    juce::Rectangle<int> getAnalysisArea();
 };
 
 class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor {
