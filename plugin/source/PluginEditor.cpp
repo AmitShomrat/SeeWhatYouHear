@@ -3,6 +3,13 @@
 
 namespace audio_plugin {
 
+// Add utility function at the top of the namespace
+float getTextWidth(const juce::Font& font, const juce::String& text)
+{
+    juce::GlyphArrangement glyphs;
+    glyphs.addFittedText(font, text, 0.0f, 0.0f, 1000.0f, 100.0f, juce::Justification::left, 1);
+    return glyphs.getBoundingBox(0, -1, true).getWidth();
+}
 
 void LookAndFeel::drawRotarySlider(juce::Graphics& g,
                                   int x,
@@ -47,13 +54,10 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
     g.setFont(static_cast<float>(rswl -> getTextHeight()));
     auto text = rswl -> getDisplayString();
 
-    //Refactor is needed here.
-    juce::GlyphArrangement glyphs;
-    glyphs.addFittedText(g.getCurrentFont(), text, 0.0f, 0.0f, 1000.0f, 100.0f, juce::Justification::left, 1);
-    auto textWidth = glyphs.getBoundingBox(0, -1, true).getWidth();
-    //--------------------------------
+    // Use utility function instead of duplicated code
+    auto textWidth = getTextWidth(g.getCurrentFont(), text);
 
-    r.setSize(static_cast<float>(textWidth) + 4, static_cast<float>(rswl -> getTextHeight()) + 2);
+    r.setSize(textWidth + 4, static_cast<float>(rswl -> getTextHeight()) + 2);
     r.setCentre(bounds.getCentre());
     
     g.setColour(Colours::black);
@@ -111,11 +115,8 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
     Rectangle<float> r;
     auto str = labels[i].label;
     
-    //Refactor is needed here.
-    juce::GlyphArrangement glyphs;
-    glyphs.addFittedText(g.getCurrentFont(), str, 0.0f, 0.0f, 1000.0f, 100.0f, juce::Justification::left, 1);
-    auto textWidth = glyphs.getBoundingBox(0, -1, true).getWidth();
-    //--------------------------------
+    // Use utility function instead of duplicated code
+    auto textWidth = getTextWidth(g.getCurrentFont(), str);
 
     r.setSize(static_cast<float>(textWidth), static_cast<float>(getTextHeight()));
     r.setCentre(c);
@@ -304,9 +305,9 @@ void ResponseCurveComponent::resized()
   g.fillAll(Colours::black);
   Array<float> freqs
   {
-    20.0f, 30.0f, 40.0f, 50.0f, 100.0f,
-    200.0f, 300.0f, 400.0f, 500.0f, 1000.0f, 
-    2000.0f, 3000.0f, 4000.0f, 5000.0f, 10000.0f, 
+    20.0f, /*30.0f, 40.0f,*/ 50.0f, 100.0f,
+    200.0f, /*300.0f, 400.0f,*/ 500.0f, 1000.0f, 
+    2000.0f, /*3000.0f, 4000.0f,*/ 5000.0f, 10000.0f, 
     20000.0f
   };
 
@@ -325,7 +326,7 @@ void ResponseCurveComponent::resized()
   }
 
   g.setColour(Colours::dimgrey);
-  for ( auto x :freqs)
+  for ( auto x : xs)
   {
     // auto normX = mapFromLog10<float>(f, 20.0f, 20000.0f);
     // juce::ignoreUnused(normX);
@@ -347,7 +348,41 @@ void ResponseCurveComponent::resized()
 
   }
 
-  g.drawRect(getAnalysisArea());
+  // g.drawRect(getAnalysisArea());
+
+  g.setColour(Colours::lightgrey);
+  const int fontHeight = 10;
+  g.setFont(fontHeight);
+
+  for(int i = 0; i < freqs.size(); ++i)
+  {
+    auto f = freqs[i];
+    auto x = xs[i];
+
+    bool addK = false;
+    String str;
+    if(f > 999.f)
+    {
+      addK = true;
+      f /= 1000.f;
+    }
+
+    str << f;
+    if(addK) 
+      str << "K";
+    str << "Hz";
+
+    // Use utility function instead of duplicated code
+    auto textWidth = getTextWidth(g.getCurrentFont(), str);
+
+    Rectangle<int> r;
+    r.setSize(static_cast<int>(textWidth), fontHeight);
+    r.setCentre(static_cast<int>(x), 0);
+    r.setY(1);
+
+    g.drawFittedText(str, r, juce::Justification::centred, 1);
+    
+  }
 }
 
 juce::Rectangle<int> ResponseCurveComponent::getRenderArea()
