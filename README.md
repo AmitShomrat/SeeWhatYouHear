@@ -96,7 +96,7 @@ See how I create this template step by step in this video:
 
 **<---------------------------------------------SIMPLE_EQ--------------------------------------------->**
 
-*This EQ is made by MatkatMusic and rebuilt on the purpose of learning DSP Programming. also i will use this plugin skeleton as the DSP module on the final project of my degree*
+*This EQ is made by MatkatMusic and rebuilt on the purpose of learning DSP Programming. I will use this plugin skeleton as the DSP module in the Sound-Leds project* 
 # 🎛️ SIMPLE EQ PLUGIN IMPLEMENTATION GUIDE
 
 ## PARAMETERS

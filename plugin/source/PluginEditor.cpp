@@ -87,8 +87,6 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
   // g.setColour(Colours::white);
   // g.drawRect(sliderBounds); //Debugging tests.
 
-
-
   getLookAndFeel().drawRotarySlider(g, 
                                     sliderBounds.getX(), 
                                     sliderBounds.getY(), 
@@ -98,6 +96,8 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
                                     startAng, 
                                     endAng, 
                                     *this);
+
+                                    
   auto center = sliderBounds.toFloat().getCentre();
   auto radius = sliderBounds.getWidth() * 0.5;
 
@@ -175,20 +175,25 @@ juce::String RotarySliderWithLabels::getDisplayString() const
     if(addK) str << "k";
     str << suffix;
   }
-  return str;
+ return str;
 }
 
 //============================================================================================================================
 //This Component is a listener and Timer object.
 ResponseCurveComponent::ResponseCurveComponent(AudioPluginAudioProcessor& p)
-: processorRef(p)
-{
+: processorRef(p), 
+leftChannelFifo(&processorRef.leftChannelFifo)
+{  
+
   const auto& params = processorRef.getParameters();
   for(auto param : params) {
     param -> addListener(this);// To observe the changes in the parameters.
   }
 
+  leftChannelFFTDataGenerator.changeOrder(FFTOrder::order2048);
+  monoBuffer.setSize(1, leftChannelFFTDataGenerator.getFFTSize());
   updateChain();
+  
   startTimerHz(60); //timerCallback function is called 60 times per second.
 }
 //This function is called when the parameter value changes.
@@ -203,15 +208,67 @@ ResponseCurveComponent::~ResponseCurveComponent() {
     param -> removeListener(this);
   }
 }
-
 void ResponseCurveComponent::timerCallback() {
+  juce::AudioBuffer<float> tempIncomingBuffer;
+
+  while(leftChannelFifo->getNumCompleteBuffersAvailable() > 0)
+  {
+    if(leftChannelFifo->getAudioBuffer(tempIncomingBuffer))
+    {
+      auto size = tempIncomingBuffer.getNumSamples();
+
+      juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, 0), 
+                                        monoBuffer.getReadPointer(0, size), 
+                                        monoBuffer.getNumSamples() - size);
+
+      juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, monoBuffer.getNumSamples() - size),
+                                        tempIncomingBuffer.getReadPointer(0, 0), 
+                                        size);
+
+      leftChannelFFTDataGenerator.produceFFTDataForRendering(monoBuffer, -48.f);                                      
+    }
+  }
+
+  /*
+  if there are FFT data buffer to pull.
+    if we can pull a buffer, generate a path 
+  */
+  const auto fftBounds = getAnalysisArea().toFloat();
+  const auto fftSize = leftChannelFFTDataGenerator.getFFTSize();
+  /*
+  48000 / 2048 = 23Hz <- this is the bin width.
+  */
+  const auto binWidth = processorRef.getSampleRate() / static_cast<double>(fftSize);
+
+  while(leftChannelFFTDataGenerator.getNumAvailableFFTDataBlocks() > 0)
+  {
+    std::vector<float> fftData;
+    if(leftChannelFFTDataGenerator.getFFTData(fftData))
+    {
+      pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
+    }
+  }
+
+  /*
+  while there are path producer available, 
+      pull as many as you can 
+            display the most recent one.
+  */
+
+  while(pathProducer.getNumPathsAvailable() > 0)
+  {
+    pathProducer.getPath(leftChannelFFTPath );
+  }
+  
+
+
   if(parametersChanged.compareAndSetBool(false, true)) {// If the parameter value has changed, then update the monochain.
     DBG("Parameter changed");
     //update the monochain
-    updateChain();
-    repaint();
     //signal a repaint
+    updateChain();
   }
+  repaint();
 }
 
 void ResponseCurveComponent::updateChain() 
@@ -289,6 +346,9 @@ void ResponseCurveComponent::paint(juce::Graphics& g) {
   for (size_t i = 1; i < mags.size(); ++i) {
     responseCurve.lineTo(static_cast<float>(responseArea.getX() + i), static_cast<float>(map(mags[i])));
   }
+
+  g.setColour(Colours::blue);
+  g.strokePath(leftChannelFFTPath, PathStrokeType(1.f));
 
   g.setColour(Colours::orange);
   g.drawRoundedRectangle(getRenderArea().toFloat(), 4.f, 1.f);
@@ -400,9 +460,18 @@ void ResponseCurveComponent::resized()
     r.setSize(static_cast<int>(textWidth), fontHeight);
     r.setX(static_cast<int>(getWidth() - textWidth));
     r.setCentre(r.getCentreX(), static_cast<int>(y));
+
     g.setColour(gDb == 0.f ? Colours::red : Colours::lightgrey);
+
     g.drawFittedText(str, r, juce::Justification::centred, 1);
-    
+
+    str.clear();
+    str << (gDb - 24.0f);
+
+    r.setX(1);
+    r.setSize(static_cast<int>(textWidth), fontHeight);
+    g.setColour(Colours::lightgrey);
+    g.drawFittedText(str, r, juce::Justification::centred, 1);
   }
 }
 

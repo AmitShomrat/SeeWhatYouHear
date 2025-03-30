@@ -138,7 +138,8 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
 
   updateFilters();
 
-
+  leftChannelFifo.prepare(samplesPerBlock);
+  rightChannelFifo.prepare(samplesPerBlock);
 
 }
 
@@ -202,6 +203,9 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
   leftChain.process(leftContext);
   rightChain.process(rightContext);
+
+  leftChannelFifo.process(buffer);
+  rightChannelFifo.process(buffer);
 
 }
 
