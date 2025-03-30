@@ -347,7 +347,9 @@ void ResponseCurveComponent::paint(juce::Graphics& g) {
     responseCurve.lineTo(static_cast<float>(responseArea.getX() + i), static_cast<float>(map(mags[i])));
   }
 
-  g.setColour(Colours::blue);
+  leftChannelFFTPath.applyTransform(AffineTransform().translation(static_cast<float>(responseArea.getX()), static_cast<float>(responseArea.getY())));
+
+  g.setColour(Colours::skyblue);
   g.strokePath(leftChannelFFTPath, PathStrokeType(1.f));
 
   g.setColour(Colours::orange);
