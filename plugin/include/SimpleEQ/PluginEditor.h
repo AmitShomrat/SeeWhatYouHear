@@ -146,9 +146,8 @@ struct LookAndFeel : juce::LookAndFeel_V4 {
                         juce::Slider& slider) override;
 };
 struct RotarySliderWithLabels : juce::Slider {
-  RotarySliderWithLabels(juce::RangedAudioParameter& rap, const juce::String& unitSuffix):
+  RotarySliderWithLabels(const juce::String& unitSuffix):
   juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox),
-  param(&rap),
   suffix(unitSuffix)
   {
     setLookAndFeel(&lnf);
@@ -171,7 +170,6 @@ struct RotarySliderWithLabels : juce::Slider {
   juce::String getDisplayString() const;
   private:
     LookAndFeel lnf;
-    juce::RangedAudioParameter* param;
     juce::String suffix;
 };
 
@@ -215,7 +213,7 @@ juce::AudioProcessorParameter::Listener, juce::Timer
     AudioPluginAudioProcessor& processorRef;
     juce::Atomic<bool> parametersChanged {false};
  
-    MonoChain monoChain;
+    // MonoChain monoChain;
 
     void updateChain();
 
@@ -238,11 +236,11 @@ struct LEDSimulator : juce::Component, juce::Timer
     void paint(juce::Graphics& g) override;
     void resized() override;
     void timerCallback() override;
-    
+    juce::Rectangle<float> getLEDArea();
 private:
     AudioPluginAudioProcessor& processorRef;
-    float leftChannelLevel = 0.0f;
-    float rightChannelLevel = 0.0f;
+    float leftChannelLevel = {0.0f};
+    float rightChannelLevel = {0.0f};
     
     // Smoothing variables
     float leftLevelSmoothed = 0.0f;
@@ -259,13 +257,12 @@ public:
   void paint(juce::Graphics&) override;
   void resized() override;
 
-  
 private:
   // This reference is provided as a quick way for your editor to
   // access the processor object that created it.
   AudioPluginAudioProcessor& processorRef;
   // Add components here.
-  // RotarySliderWithLabels 
+  RotarySliderWithLabels brightnessSlider;
   // peakFreqSlider, 
   // peakGainSlider, 
   // peakQualitySlider,

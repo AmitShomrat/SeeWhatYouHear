@@ -72,55 +72,55 @@ void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String&
   juce::ignoreUnused(index, newName);
 }
 
-Coefficients audio_plugin::makePeakFilter(const ChainSettings& chainSettings, double sampleRate) {
-  return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-    sampleRate,
-    chainSettings.peakFreq,
-    chainSettings.peakQuality,
-    juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels)
-  );
-}
+// Coefficients audio_plugin::makePeakFilter(const ChainSettings& chainSettings, double sampleRate) {
+//   return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+//     sampleRate,
+//     chainSettings.peakFreq,
+//     chainSettings.peakQuality,
+//     juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels)
+//   );
+// }
 
-void AudioPluginAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings) {
+// void AudioPluginAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings) {
 
-  auto peakCoefficients = makePeakFilter(chainSettings, mySampleRate);
-  updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
-  updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);  
-}
+//   auto peakCoefficients = makePeakFilter(chainSettings, mySampleRate);
+//   updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+//   updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);  
+// }
 
-void audio_plugin::updateCoefficients(Coefficients& old, const Coefficients& replacements) {
-  *old = *replacements;
-}
+// void audio_plugin::updateCoefficients(Coefficients& old, const Coefficients& replacements) {
+//   *old = *replacements;
+// }
 
-void AudioPluginAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettings) {
-     //Setting the LowCutFreq coefficients
- auto lowlowCutCoefficients = makeLowCutFilter(chainSettings, mySampleRate);                                                                                                    
+// void AudioPluginAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettings) {
+//      //Setting the LowCutFreq coefficients
+//  auto lowlowCutCoefficients = makeLowCutFilter(chainSettings, mySampleRate);                                                                                                    
 
-  auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
-  auto& rightLowCut = rightChain.get<ChainPositions::LowCut>();
+//   auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
+//   auto& rightLowCut = rightChain.get<ChainPositions::LowCut>();
 
-  updateCutFilters(leftLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
-  updateCutFilters(rightLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
+//   updateCutFilters(leftLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
+//   updateCutFilters(rightLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
 
-}
+// }
 
-void AudioPluginAudioProcessor::updateHighCutFilters(const ChainSettings& chainSettings) {
-  auto highCutCoefficients = makeHighCutFilter(chainSettings, mySampleRate);
+// void AudioPluginAudioProcessor::updateHighCutFilters(const ChainSettings& chainSettings) {
+//   auto highCutCoefficients = makeHighCutFilter(chainSettings, mySampleRate);
 
-  auto& leftHighCut = leftChain.get<ChainPositions::HighCut>();
-  updateCutFilters(leftHighCut, highCutCoefficients, chainSettings.highCutSlope );
+//   auto& leftHighCut = leftChain.get<ChainPositions::HighCut>();
+//   updateCutFilters(leftHighCut, highCutCoefficients, chainSettings.highCutSlope );
 
-  auto& rightHighCut = rightChain.get<ChainPositions::HighCut>();
-  updateCutFilters(rightHighCut, highCutCoefficients, chainSettings.highCutSlope );
+//   auto& rightHighCut = rightChain.get<ChainPositions::HighCut>();
+//   updateCutFilters(rightHighCut, highCutCoefficients, chainSettings.highCutSlope );
 
-}
+// }
 
-void AudioPluginAudioProcessor::updateFilters () {
-  auto chainSettings = getChainSettings(apvts);
-  updateLowCutFilters(chainSettings);
-  updatePeakFilter(chainSettings);
-  updateHighCutFilters(chainSettings);
-}
+// void AudioPluginAudioProcessor::updateFilters () {
+//   auto chainSettings = getChainSettings(apvts);
+//   updateLowCutFilters(chainSettings);
+//   updatePeakFilter(chainSettings);
+//   updateHighCutFilters(chainSettings);
+// }
 
 void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
   // Use this method as the place to do any pre-playback
@@ -133,10 +133,10 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   spec.maximumBlockSize = samplesPerBlock;
   spec.numChannels = 1;
   spec.sampleRate = sampleRate;
-  leftChain.prepare(spec);
-  rightChain.prepare(spec);
+  // leftChain.prepare(spec);
+  // rightChain.prepare(spec);
 
-  updateFilters();
+  // updateFilters();
 
   leftChannelFifo.prepare(samplesPerBlock);
   rightChannelFifo.prepare(samplesPerBlock);
@@ -200,7 +200,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
   if (totalNumInputChannels >= 2)
     rightChannelLevel.set(calculateChannelLevel(buffer, 1));
 
-  updateFilters();
+  // updateFilters();
 
   juce::dsp::AudioBlock<float> block(buffer);
   
@@ -217,8 +217,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
   juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
   juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
 
-  leftChain.process(leftContext);
-  rightChain.process(rightContext);
+  // leftChain.process(leftContext);
+  // rightChain.process(rightContext);
 
   leftChannelFifo.process(buffer);
   rightChannelFifo.process(buffer);
@@ -238,7 +238,7 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
   // You could do that either as raw data, or use the XML or ValueTree classes
   // as intermediaries to make it easy to save and load complex data.
   juce::MemoryOutputStream mos(destData, true);
-  apvts.state.writeToStream(mos);
+  // apvts.state.writeToStream(mos);
   // juce::ignoreUnused(destData);
 }
 
@@ -246,69 +246,69 @@ void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeIn
   // You should use this method to restore your parameters from this memory
   // block, whose contents will have been created by the getStateInformation()
   // call.
-  // juce::ignoreUnused(data, sizeInBytes);
-  auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
-  if (tree.isValid()) {
-    apvts.replaceState(tree);
-    updateFilters();
-  }
+  juce::ignoreUnused(data, sizeInBytes);
+  // auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
+  // if (tree.isValid()) {
+  //   apvts.replaceState(tree);
+  //   updateFilters();
+  // }
 }
 
-ChainSettings audio_plugin::getChainSettings(juce::AudioProcessorValueTreeState& apvts) {
-  ChainSettings settings;
+// ChainSettings audio_plugin::getChainSettings(juce::AudioProcessorValueTreeState& apvts) {
+//   ChainSettings settings;
 
-  settings.lowCutFreq = apvts.getRawParameterValue("LowCut Freq")->load();
-  settings.highCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
-  settings.peakFreq = apvts.getRawParameterValue("Peak Freq")->load();
-  settings.peakGainInDecibels = apvts.getRawParameterValue("Peak Gain")->load();
-  settings.peakQuality = apvts.getRawParameterValue("Peak Quality")->load();
-  settings.lowCutSlope = static_cast <Slope>(apvts.getRawParameterValue("LowCut Slope")->load());
-  settings.highCutSlope = static_cast <Slope>(apvts.getRawParameterValue("HighCut Slope")->load());
+//   settings.lowCutFreq = apvts.getRawParameterValue("LowCut Freq")->load();
+//   settings.highCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
+//   settings.peakFreq = apvts.getRawParameterValue("Peak Freq")->load();
+//   settings.peakGainInDecibels = apvts.getRawParameterValue("Peak Gain")->load();
+//   settings.peakQuality = apvts.getRawParameterValue("Peak Quality")->load();
+//   settings.lowCutSlope = static_cast <Slope>(apvts.getRawParameterValue("LowCut Slope")->load());
+//   settings.highCutSlope = static_cast <Slope>(apvts.getRawParameterValue("HighCut Slope")->load());
 
-  return settings;
-}
+//   return settings;
+// }
 
-juce::AudioProcessorValueTreeState::ParameterLayout
-AudioPluginAudioProcessor::createParameterLayout() {
-  juce::AudioProcessorValueTreeState::ParameterLayout layout;
+// juce::AudioProcessorValueTreeState::ParameterLayout
+// AudioPluginAudioProcessor::createParameterLayout() {
+//   juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "LowCut Freq", "LowCut Freq", juce::NormalisableRange<float>
-      (20.f, 20000.f, 1.f, 0.25f), 20.f));
+//   layout.add(std::make_unique<juce::AudioParameterFloat>(
+//       "LowCut Freq", "LowCut Freq", juce::NormalisableRange<float>
+//       (20.f, 20000.f, 1.f, 0.25f), 20.f));
   
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "HighCut Freq", "HighCut Freq", juce::NormalisableRange<float>
-      (20.f, 20000.f, 1.f, 0.25f), 20000.f));
+//   layout.add(std::make_unique<juce::AudioParameterFloat>(
+//       "HighCut Freq", "HighCut Freq", juce::NormalisableRange<float>
+//       (20.f, 20000.f, 1.f, 0.25f), 20000.f));
 
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "Peak Freq", "Peak Freq", juce::NormalisableRange<float>
-      (20.f, 20000.f, 1.f, 0.25f), 750.f));
+//   layout.add(std::make_unique<juce::AudioParameterFloat>(
+//       "Peak Freq", "Peak Freq", juce::NormalisableRange<float>
+//       (20.f, 20000.f, 1.f, 0.25f), 750.f));
 
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "Peak Gain", "Peak Gain", juce::NormalisableRange<float>
-      (-24.f, 24.f, 0.5f, 1.f), 0.0f));
+//   layout.add(std::make_unique<juce::AudioParameterFloat>(
+//       "Peak Gain", "Peak Gain", juce::NormalisableRange<float>
+//       (-24.f, 24.f, 0.5f, 1.f), 0.0f));
 
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "Peak Quality", "Peak Quality", juce::NormalisableRange<float>
-      (0.1f, 10.f, 0.05f, 1.f), 1.f));
+//   layout.add(std::make_unique<juce::AudioParameterFloat>(
+//       "Peak Quality", "Peak Quality", juce::NormalisableRange<float>
+//       (0.1f, 10.f, 0.05f, 1.f), 1.f));
 
   
-  juce::StringArray stringArray;
-  for (int i = 0; i < 4; i++) {
-    juce::String str;
-    str << (12 + i*12);
-    str << " db/Oct";
-    stringArray.add(str);
-  }
+//   juce::StringArray stringArray;
+//   for (int i = 0; i < 4; i++) {
+//     juce::String str;
+//     str << (12 + i*12);
+//     str << " db/Oct";
+//     stringArray.add(str);
+//   }
 
-  layout.add(std::make_unique<juce::AudioParameterChoice>(
-      "LowCut Slope", "LowCut Slope", stringArray, 0));
+//   layout.add(std::make_unique<juce::AudioParameterChoice>(
+//       "LowCut Slope", "LowCut Slope", stringArray, 0));
 
-  layout.add(std::make_unique<juce::AudioParameterChoice>(
-      "HighCut Slope", "HighCut Slope", stringArray, 0));
+//   layout.add(std::make_unique<juce::AudioParameterChoice>(
+//       "HighCut Slope", "HighCut Slope", stringArray, 0));
 
-  return layout;
-}
+//   return layout;
+// }
 
 float AudioPluginAudioProcessor::calculateChannelLevel(const juce::AudioBuffer<float>& buffer, int channel)
 {

@@ -32,43 +32,45 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
   if(auto* rswl = dynamic_cast<RotarySliderWithLabels*>(&slider)) {
 
     auto center = bounds.getCentre();
-    // A reference to the slider position object designing a tall and thin rectangle.
     Path p; 
 
     Rectangle<float> r;
     r.setLeft(center.getX() - 2);
     r.setRight(center.getX() + 2);
     r.setTop(bounds.getY());
-    r.setBottom(center.getY() - static_cast<float>(rswl -> getTextHeight()) * 0.5f);
+    r.setBottom(center.getY() - static_cast<float>(14.0f) * 0.5f);
 
     p.addRoundedRectangle(r, 2.f);
-    //Debugging tests.
+
     jassert(rotaryStartAngle < rotaryEndAngle);
 
     auto sliderAngRad = jmap(sliderPosProportional, 0.0f, 1.0f, rotaryStartAngle, rotaryEndAngle);
 
     p.applyTransform(AffineTransform().rotated(sliderAngRad, center.getX(), center.getY()));
 
+    // Debugging: Check the path bounds and angle
+    DBG("Path bounds: " << p.getBounds().toString());
+    DBG("Slider angle (radians): " << sliderAngRad);
+
     g.fillPath(p);
 
-    //Adding text of value to the slider.
-    g.setFont(static_cast<float>(rswl -> getTextHeight()));
-    auto text = rswl -> getDisplayString();
+    // // Adding text of value to the slider.
+    // g.setFont(static_cast<float>(rswl -> getTextHeight()));
+    // auto text = rswl -> getDisplayString();
 
-    // Use utility function instead of duplicated code
-    auto textWidth = getTextWidth(g.getCurrentFont(), text);
+    // // Use utility function instead of duplicated code
+    // auto textWidth = getTextWidth(g.getCurrentFont(), text);
 
-    r.setSize(textWidth + 4, static_cast<float>(rswl -> getTextHeight()) + 2);
-    r.setCentre(bounds.getCentre());
+    // r.setSize(textWidth + 4, static_cast<float>(rswl -> getTextHeight()) + 2);
+    // r.setCentre(bounds.getCentre());
     
-    g.setColour(Colours::black);
-    g.fillRect(r);
+    // g.setColour(Colours::black);
+    // g.fillRect(r);
 
-    g.setColour(Colours::white);
-    g.drawFittedText(text, r.toNearestInt(), juce::Justification::centred, 1);
+    // g.setColour(Colours::white);
+    // g.drawFittedText(text, r.toNearestInt(), juce::Justification::centred, 1);
   }
 
-  
   juce::ignoreUnused(sliderPosProportional, rotaryStartAngle, rotaryEndAngle, slider);
 }
 
@@ -83,10 +85,10 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
 
   auto sliderBounds = getSliderBounds();
 
-  // g.setColour(Colours::red);
-  // g.drawRect(getLocalBounds()); //Debugging tests.
-  // g.setColour(Colours::white);
-  // g.drawRect(sliderBounds); //Debugging tests.
+  g.setColour(Colours::red);
+  g.drawRect(getLocalBounds()); //Debugging tests.
+  g.setColour(Colours::white);
+  g.drawRect(sliderBounds); //Debugging tests.
 
   getLookAndFeel().drawRotarySlider(g, 
                                     sliderBounds.getX(), 
@@ -148,36 +150,36 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
   return r;
 }
 
-juce::String RotarySliderWithLabels::getDisplayString() const 
-{
-  if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(param)) 
-    return choiceParam -> getCurrentChoiceName();
+// juce::String RotarySliderWithLabels::getDisplayString() const 
+// {
+//   if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(param)) 
+//     return choiceParam -> getCurrentChoiceName();
   
-  juce::String str;
-  bool addK = false;
+//   juce::String str;
+//   bool addK = false;
   
-  if(auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(param)) {
-    float val = floatParam -> get();
+//   if(auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(param)) {
+//     float val = floatParam -> get();
 
-    if(val > 999.f) {
-      val /= 1000.f;
-      addK = true;
-    }
-    str = juce::String(val, (addK ? 2 : 0));
-  }
+//     if(val > 999.f) {
+//       val /= 1000.f;
+//       addK = true;
+//     }
+//     str = juce::String(val, (addK ? 2 : 0));
+//   }
 
-  else 
-  {
-    jassertfalse; //This should never happen.
-  }
+//   else 
+//   {
+//     jassertfalse; //This should never happen.
+//   }
 
-  if(suffix.isNotEmpty()) {
-    str << " " ;
-    if(addK) str << "k";
-    str << suffix;
-  }
- return str;
-}
+//   if(suffix.isNotEmpty()) {
+//     str << " " ;
+//     if(addK) str << "k";
+//     str << suffix;
+//   }
+//  return str;
+// }
 
 //============================================================================================================================
 //This Component is a listener and Timer object.
@@ -194,7 +196,7 @@ rightPathProducer(processorRef.rightChannelFifo)
   }
 
   
-  updateChain();
+  // updateChain();
   
   startTimerHz(60); //timerCallback function is called 60 times per second.
 }
@@ -277,25 +279,25 @@ void ResponseCurveComponent::timerCallback() {
     DBG("Parameter changed");
     //update the monochain
     //signal a repaint
-    updateChain();
+    // updateChain();
   }
   repaint();
 }
 
-void ResponseCurveComponent::updateChain() 
-{
+// void ResponseCurveComponent::updateChain() 
+// {
 
-    auto chainSettings = getChainSettings(processorRef.apvts);
-    auto peakCoefficients = makePeakFilter(chainSettings, processorRef.getSampleRate());
-    updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+//     auto chainSettings = getChainSettings(processorRef.apvts);
+//     auto peakCoefficients = makePeakFilter(chainSettings, processorRef.getSampleRate());
+//     updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
 
-    auto lowCutCoefficients = makeLowCutFilter(chainSettings, processorRef.getSampleRate());
-    auto highCutCoefficients = makeHighCutFilter(chainSettings, processorRef.getSampleRate());
+//     auto lowCutCoefficients = makeLowCutFilter(chainSettings, processorRef.getSampleRate());
+//     auto highCutCoefficients = makeHighCutFilter(chainSettings, processorRef.getSampleRate());
 
-    updateCutFilters(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
-    updateCutFilters(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
+//     updateCutFilters(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
+//     updateCutFilters(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
 
-}
+// }
 void ResponseCurveComponent::paint(juce::Graphics& g) {
   using namespace juce;
   g.fillAll(Colours::black);
@@ -528,8 +530,12 @@ LEDSimulator::~LEDSimulator()
 
 void LEDSimulator::paint(juce::Graphics& g)
 {
-    auto bounds = getLocalBounds().toFloat();
-    
+    auto bounds = getLEDArea();
+
+    g.setColour(juce::Colours::red);
+    g.drawRect(getLocalBounds());
+    g.setColour(juce::Colours::white);
+    g.drawRect(bounds);
     // Draw background
     g.setColour(juce::Colours::black);
     g.fillRect(bounds);
@@ -576,7 +582,7 @@ void LEDSimulator::timerCallback()
     float targetRightLevel = processorRef.rightChannelLevel.get();
     
     // Apply smoothing
-    const float smoothingCoeff = JUCE_LIVE_CONSTANT(0.2f);
+    const float smoothingCoeff = /*JUCE_LIVE_CONSTANT(0.2f)*/ 0.9f; //Higher = Fast response, Lower = Slow response.
     leftLevelSmoothed = leftLevelSmoothed + (smoothingCoeff * (targetLeftLevel - leftLevelSmoothed));
     rightLevelSmoothed = rightLevelSmoothed + (smoothingCoeff * (targetRightLevel - rightLevelSmoothed));
     
@@ -588,6 +594,16 @@ void LEDSimulator::timerCallback()
         rightChannelLevel = rightLevelSmoothed;
         repaint();
     }
+}
+
+juce::Rectangle<float> LEDSimulator::getLEDArea()
+{
+  auto bounds = getLocalBounds().toFloat();
+  bounds.removeFromTop(4);
+  bounds.removeFromBottom(4);
+  bounds.removeFromLeft(4);
+  bounds.removeFromRight(4);
+  return bounds;
 }
 
 void LEDSimulator::drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, float brightness, juce::Colour color)
@@ -662,6 +678,7 @@ void LEDSimulator::drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, flo
 
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
     : juce::AudioProcessorEditor(&p), processorRef(p),
+      brightnessSlider("Brightness"),
       // peakFreqSlider(*processorRef.apvts.getParameter("Peak Freq"), "Hz"),
       // peakGainSlider(*processorRef.apvts.getParameter("Peak Gain"), "dB"),
       // peakQualitySlider(*processorRef.apvts.getParameter("Peak Quality"), ""),
@@ -724,27 +741,31 @@ void AudioPluginAudioProcessorEditor::resized() {
   auto responseArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * responseCurveRatio));
   responseCurveComponent.setBounds(responseArea);
   
-  // Allocate space for LED simulator (next 20%)
+  // Allocate space for LED simulator (next 30%)
   float ledSimulatorRatio = 30 / 100.f;
   auto ledArea = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * ledSimulatorRatio));
-  ledArea.setCentre(bounds.getCentreX(), ledArea.getCentreY() + 50);
+  ledArea.setCentre(ledArea.getCentreX(), ledArea.getCentreY() + 10);
   ledSimulator.setBounds(ledArea);
+
+
+  auto brightnessSliderArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
+  brightnessSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 0.10));
+  brightnessSlider.setBounds(brightnessSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 3)));
   
   // Rest of existing layout code (commented out as we're hiding sliders)
-  /*
-  bounds.removeFromTop(5);
-  auto lowCutArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
-  auto highCutArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.5));
+  // bounds.removeFromTop(5);
+  // auto lowCutArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
+  // auto highCutArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.5));
   
-  lowCutFreqSlider.setBounds(lowCutArea.removeFromTop(static_cast<int>(lowCutArea.getHeight() * 0.5)));
-  lowCutSlopeSlider.setBounds(lowCutArea);
-  highCutFreqSlider.setBounds(highCutArea.removeFromTop(static_cast<int>(highCutArea.getHeight() * 0.5)));
-  highCutSlopeSlider.setBounds(highCutArea);
+  // lowCutFreqSlider.setBounds(lowCutArea.removeFromTop(static_cast<int>(lowCutArea.getHeight() * 0.5)));
+  // lowCutSlopeSlider.setBounds(lowCutArea);
+  // highCutFreqSlider.setBounds(highCutArea.removeFromTop(static_cast<int>(highCutArea.getHeight() * 0.5)));
+  // highCutSlopeSlider.setBounds(highCutArea);
 
-  peakFreqSlider.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.33)));
-  peakGainSlider.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.5)));
-  peakQualitySlider.setBounds(bounds);
-  */
+  // peakFreqSlider.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.33)));
+  // peakGainSlider.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.5)));
+  // peakQualitySlider.setBounds(bounds);
+
 }
 
 std::vector<juce::Component*> AudioPluginAudioProcessorEditor::getComps() {
@@ -759,6 +780,7 @@ std::vector<juce::Component*> AudioPluginAudioProcessorEditor::getComps() {
     &lowCutSlopeSlider,
     &highCutSlopeSlider,
     */
+    &brightnessSlider,
     &responseCurveComponent,
     &ledSimulator
   };
