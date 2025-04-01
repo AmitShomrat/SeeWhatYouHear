@@ -175,6 +175,27 @@ struct RotarySliderWithLabels : juce::Slider {
     juce::String suffix;
 };
 
+struct PathProducer {
+  PathProducer(SingleChannelSampleFifo<float>& scsf) :
+  leftChannelFifo(&scsf) 
+  {
+      leftChannelFFTDataGenerator.changeOrder(FFTOrder::order2048);
+      monoBuffer.setSize(1, leftChannelFFTDataGenerator.getFFTSize());
+  }
+  void process(juce::Rectangle<float> fftBounds, double sampleRate);
+  juce::Path getPath() {return leftChannelFFTPath;}
+  private:
+    SingleChannelSampleFifo<float>* leftChannelFifo;
+
+    juce::AudioBuffer<float> monoBuffer;
+
+    FFTDataGenerator<std::vector<float>> leftChannelFFTDataGenerator;
+
+    AnalyzerPathGenerator<juce::Path> pathProducer;
+
+    juce::Path leftChannelFFTPath;
+};
+
 struct ResponseCurveComponent : juce::Component, 
 juce::AudioProcessorParameter::Listener, juce::Timer 
 {
@@ -204,16 +225,30 @@ juce::AudioProcessorParameter::Listener, juce::Timer
 
     juce::Rectangle<int> getAnalysisArea();
 
-    SingleChannelSampleFifo<float>* leftChannelFifo;
-
-    juce::AudioBuffer<float> monoBuffer;
-
-    FFTDataGenerator<std::vector<float>> leftChannelFFTDataGenerator;
-
-    AnalyzerPathGenerator<juce::Path> pathProducer;
-
-    juce::Path leftChannelFFTPath;
+    PathProducer leftPathProducer, rightPathProducer;
    
+};
+
+// Add LEDSimulator component
+struct LEDSimulator : juce::Component, juce::Timer
+{
+    LEDSimulator(AudioPluginAudioProcessor& p);
+    ~LEDSimulator() override;
+    
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+    void timerCallback() override;
+    
+private:
+    AudioPluginAudioProcessor& processorRef;
+    float leftChannelLevel = 0.0f;
+    float rightChannelLevel = 0.0f;
+    
+    // Smoothing variables
+    float leftLevelSmoothed = 0.0f;
+    float rightLevelSmoothed = 0.0f;
+    
+    void drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, float brightness, juce::Colour color);
 };
 
 class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor {
@@ -230,25 +265,26 @@ private:
   // access the processor object that created it.
   AudioPluginAudioProcessor& processorRef;
   // Add components here.
-  RotarySliderWithLabels 
-  peakFreqSlider, 
-  peakGainSlider, 
-  peakQualitySlider,
-  lowCutFreqSlider, 
-  highCutFreqSlider,
-  lowCutSlopeSlider,
-  highCutSlopeSlider; 
+  // RotarySliderWithLabels 
+  // peakFreqSlider, 
+  // peakGainSlider, 
+  // peakQualitySlider,
+  // lowCutFreqSlider, 
+  // highCutFreqSlider,
+  // lowCutSlopeSlider,
+  // highCutSlopeSlider; 
   ResponseCurveComponent responseCurveComponent;
+  LEDSimulator ledSimulator;
 
-  using APVTS = juce::AudioProcessorValueTreeState;
-  using Attachment = APVTS::SliderAttachment;
-  Attachment peakFreqSliderAttachment,
-  peakGainSliderAttachment,
-  peakQualitySliderAttachment,
-  lowCutFreqSliderAttachment,
-  highCutFreqSliderAttachment,
-  lowCutSlopeSliderAttachment,
-  highCutSlopeSliderAttachment;
+  // using APVTS = juce::AudioProcessorValueTreeState;
+  // using Attachment = APVTS::SliderAttachment;
+  // Attachment peakFreqSliderAttachment,
+  // peakGainSliderAttachment,
+  // peakQualitySliderAttachment,
+  // lowCutFreqSliderAttachment,
+  // highCutFreqSliderAttachment,
+  // lowCutSlopeSliderAttachment,
+  // highCutSlopeSliderAttachment;
 
   std::vector<juce::Component*> getComps();
 

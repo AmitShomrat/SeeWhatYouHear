@@ -7,6 +7,7 @@
 #include <array>
 namespace audio_plugin {
 template <typename T>
+// this is a queue that can be used to store and provide audio buffers.
 struct Fifo
 {
   void prepare(int numChannels, int numSamples)
@@ -123,7 +124,9 @@ private:
   juce::AudioBuffer<Type> bufferToFill;
   juce::Atomic<bool> prepared {false};
   juce::Atomic<int> size = 0;
-
+ 
+ 
+ //Accumulates samples into the bufferToFill and push it to the fifo when it's full.
   void pushNextSampleIntoFifo(Type sample) 
   {
     if(fifoIndex == bufferToFill.getNumSamples())
@@ -264,6 +267,13 @@ public:
   void stopPlayback();
   bool isPlaying() const { return playing; }
 
+  // Add channel level tracking
+  juce::Atomic<float> leftChannelLevel { 0.0f };
+  juce::Atomic<float> rightChannelLevel { 0.0f };
+  
+  // Helper to calculate channel level
+  float calculateChannelLevel(const juce::AudioBuffer<float>& buffer, int channel);
+
 private:
   //MonoChain for each channel.
   MonoChain leftChain, rightChain; 
@@ -282,7 +292,9 @@ private:
   void updatePeakFilter(const ChainSettings& chainSettings);   
   void updateLowCutFilters(const ChainSettings& chainSettings);
   void updateHighCutFilters(const ChainSettings& chainSettings);
-  void updateFilters ();                     
+  void updateFilters ();              
+
+  // juce::dsp::Oscillator<float> osc;       
   
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 };

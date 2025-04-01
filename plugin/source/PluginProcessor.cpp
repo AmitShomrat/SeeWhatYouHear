@@ -141,8 +141,11 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   leftChannelFifo.prepare(samplesPerBlock);
   rightChannelFifo.prepare(samplesPerBlock);
 
+  // osc.initialise([](float x) { return std::sin(x); });
+  // spec.numChannels = getTotalNumOutputChannels();
+  // osc.prepare(spec);
+  // osc.setFrequency(1000);
 }
-
 
 void AudioPluginAudioProcessor::releaseResources() {
   // When playback stops, you can use this as an opportunity to free up any
@@ -180,21 +183,34 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
   juce::ScopedNoDenormals noDenormals;
   auto totalNumInputChannels = getTotalNumInputChannels();
   auto totalNumOutputChannels = getTotalNumOutputChannels();
-  // In case we have more outputs than inputs, this code clears any output
+
+  // In case we have more outputs than inputs, we'll clear any output
   // channels that didn't contain input data, (because these aren't
   // guaranteed to be empty - they may contain garbage).
   // This is here to avoid people getting screaming feedback
   // when they first compile a plugin, but obviously you don't need to keep
   // this code if your algorithm always overwrites all the output channels.
-  for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+  for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
     buffer.clear(i, 0, buffer.getNumSamples());
+  }
 
+  // Update the channel levels
+  if (totalNumInputChannels >= 1)
+    leftChannelLevel.set(calculateChannelLevel(buffer, 0));
+  if (totalNumInputChannels >= 2)
+    rightChannelLevel.set(calculateChannelLevel(buffer, 1));
 
   updateFilters();
- 
-  //Processing the audio block
+
   juce::dsp::AudioBlock<float> block(buffer);
   
+  //======================================Check freqs with osc======================================
+  // buffer.clear();
+
+  // juce::dsp::ProcessContextReplacing<float> StereoContext(block);
+  // osc.process(StereoContext);
+  //======================================Check freqs with osc======================================
+
   auto leftBlock = block.getSingleChannelBlock(0);
   auto rightBlock = block.getSingleChannelBlock(1);
 
@@ -206,7 +222,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
   leftChannelFifo.process(buffer);
   rightChannelFifo.process(buffer);
-
 }
 
 bool AudioPluginAudioProcessor::hasEditor() const {
@@ -295,6 +310,28 @@ AudioPluginAudioProcessor::createParameterLayout() {
   return layout;
 }
 
+float AudioPluginAudioProcessor::calculateChannelLevel(const juce::AudioBuffer<float>& buffer, int channel)
+{
+    if (channel >= buffer.getNumChannels())
+        return 0.0f;
+        
+    auto* channelData = buffer.getReadPointer(channel);
+    float sum = 0.0f;
+    
+    // Calculate RMS (Root Mean Square) level
+    for (int i = 0; i < buffer.getNumSamples(); ++i)
+    {
+        float sample = channelData[i];
+        sum += sample * sample;
+    }
+    
+    float rms = std::sqrt(sum / buffer.getNumSamples());
+    
+    // Convert to decibels and normalize to 0.0-1.0 range for visualization
+    // -60dB to 0dB mapped to 0.0 to 1.0
+    float db = juce::Decibels::gainToDecibels(rms, -60.0f);
+    return juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 60.0f);
+}
 
 }  // namespace audio_plugin
 
