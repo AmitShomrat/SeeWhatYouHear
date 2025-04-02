@@ -551,9 +551,25 @@ void LEDSimulator::paint(juce::Graphics& g)
     // Create LED areas
     auto leftLedArea = bounds.withX(leftLabelArea.getRight()).withWidth(ledWidth);
     auto rightLedArea = bounds.withX(bounds.getRight() - labelWidth - ledWidth).withWidth(ledWidth);
-    
+
+    auto color = static_cast<Color>(processorRef.apvts.getRawParameterValue("Color")->load());
+    juce::Colour ledColor;
+    switch(color) {
+      case Red:
+        ledColor = juce::Colours::red;
+        break;
+      case Blue:
+        ledColor = juce::Colours::blue;
+        break; 
+      case Green:
+        ledColor = juce::Colours::green;
+        break;
+      case Yellow:
+        ledColor = juce::Colours::yellow;
+        break;
+    }
+
     // Draw LEDs
-    juce::Colour ledColor = juce::Colours::red;
     drawLED(g, leftLedArea, leftLevelSmoothed, ledColor);
     drawLED(g, rightLedArea, rightLevelSmoothed, ledColor);
     
@@ -580,11 +596,11 @@ void LEDSimulator::timerCallback()
     // Get channel levels
     float targetLeftLevel = processorRef.leftChannelLevel.get();
     float targetRightLevel = processorRef.rightChannelLevel.get();
-    
+    float targetBrightness = processorRef.apvts.getRawParameterValue("Brightness")->load();
     // Apply smoothing
     const float smoothingCoeff = /*JUCE_LIVE_CONSTANT(0.2f)*/ 0.9f; //Higher = Fast response, Lower = Slow response.
-    leftLevelSmoothed = leftLevelSmoothed + (smoothingCoeff * (targetLeftLevel - leftLevelSmoothed));
-    rightLevelSmoothed = rightLevelSmoothed + (smoothingCoeff * (targetRightLevel - rightLevelSmoothed));
+    leftLevelSmoothed = leftLevelSmoothed + (smoothingCoeff * (targetLeftLevel - leftLevelSmoothed)) + targetBrightness;
+    rightLevelSmoothed = rightLevelSmoothed + (smoothingCoeff * (targetRightLevel - rightLevelSmoothed)) + targetBrightness;
     
     // Only repaint if levels changed significantly
     if (std::abs(leftLevelSmoothed - leftChannelLevel) > 0.01f || 
@@ -678,7 +694,8 @@ void LEDSimulator::drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, flo
 
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
     : juce::AudioProcessorEditor(&p), processorRef(p),
-      brightnessSlider("Brightness"),
+      brightnessSlider(*processorRef.apvts.getParameter("Brightness"), ""),
+      colorSlider(*processorRef.apvts.getParameter("Color"), ""),
       // peakFreqSlider(*processorRef.apvts.getParameter("Peak Freq"), "Hz"),
       // peakGainSlider(*processorRef.apvts.getParameter("Peak Gain"), "dB"),
       // peakQualitySlider(*processorRef.apvts.getParameter("Peak Quality"), ""),
@@ -687,7 +704,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
       // lowCutSlopeSlider(*processorRef.apvts.getParameter("LowCut Slope"), "dB/Oct"),
       // highCutSlopeSlider(*processorRef.apvts.getParameter("HighCut Slope"), "dB/Oct"),
       responseCurveComponent(p),
-      ledSimulator(p)
+      ledSimulator(p),
+      brightnessSliderAttachment(processorRef.apvts, "Brightness", brightnessSlider),
+      colorSliderAttachment(processorRef.apvts, "Color", colorSlider)
       // peakFreqSliderAttachment(processorRef.apvts, "Peak Freq", peakFreqSlider),
       // peakGainSliderAttachment(processorRef.apvts, "Peak Gain", peakGainSlider),
       // peakQualitySliderAttachment(processorRef.apvts, "Peak Quality", peakQualitySlider),
@@ -751,6 +770,10 @@ void AudioPluginAudioProcessorEditor::resized() {
   auto brightnessSliderArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
   brightnessSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 0.10));
   brightnessSlider.setBounds(brightnessSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 3)));
+
+  auto colorSliderArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.5));
+  colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 0.10));
+  colorSlider.setBounds(colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 3)));
   
   // Rest of existing layout code (commented out as we're hiding sliders)
   // bounds.removeFromTop(5);
@@ -780,6 +803,7 @@ std::vector<juce::Component*> AudioPluginAudioProcessorEditor::getComps() {
     &lowCutSlopeSlider,
     &highCutSlopeSlider,
     */
+    &colorSlider,
     &brightnessSlider,
     &responseCurveComponent,
     &ledSimulator

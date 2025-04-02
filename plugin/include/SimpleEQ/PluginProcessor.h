@@ -140,12 +140,12 @@ private:
   }  
 };
 
-// enum Slope { 
-//   Slope_12,
-//   Slope_24,
-//   Slope_36,
-//   Slope_48
-// };
+enum Color { 
+  Red,
+  Blue,
+  Green,
+  Yellow
+};
 
 // struct ChainSettings {
 //   float lowCutFreq{0}, highCutFreq{0}, 
@@ -248,9 +248,10 @@ public:
   void getStateInformation(juce::MemoryBlock& destData) override;
   void setStateInformation(const void* data, int sizeInBytes) override;
 
-  // static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-  // juce::AudioProcessorValueTreeState apvts{*this, nullptr, "PARAMETERS",
-                                          // createParameterLayout()};
+  static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
+  juce::AudioProcessorValueTreeState apvts{*this, nullptr, "PARAMETERS",
+                                          createParameterLayout()};
 
   // Use float instead of BlockType as the template parameter
   SingleChannelSampleFifo<float> leftChannelFifo {Channel::Left};                                        
@@ -277,7 +278,6 @@ public:
 private:
   //MonoChain for each channel.
   // MonoChain leftChain, rightChain; 
-
 
   // Audio file playback members
   juce::AudioFormatManager formatManager;

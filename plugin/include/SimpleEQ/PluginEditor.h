@@ -146,9 +146,9 @@ struct LookAndFeel : juce::LookAndFeel_V4 {
                         juce::Slider& slider) override;
 };
 struct RotarySliderWithLabels : juce::Slider {
-  RotarySliderWithLabels(const juce::String& unitSuffix):
+  RotarySliderWithLabels(juce::RangedAudioParameter& rap, juce::String unitSuffix):
   juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox),
-  suffix(unitSuffix)
+  suffix(unitSuffix), param(&rap)
   {
     setLookAndFeel(&lnf);
   }
@@ -171,6 +171,8 @@ struct RotarySliderWithLabels : juce::Slider {
   private:
     LookAndFeel lnf;
     juce::String suffix;
+    juce::RangedAudioParameter* param;
+    
 };
 
 struct PathProducer {
@@ -243,8 +245,8 @@ private:
     float rightChannelLevel = {0.0f};
     
     // Smoothing variables
-    float leftLevelSmoothed = 0.0f;
-    float rightLevelSmoothed = 0.0f;
+    float leftLevelSmoothed = {0.0f};
+    float rightLevelSmoothed = {0.0f};
     
     void drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, float brightness, juce::Colour color);
 };
@@ -262,7 +264,7 @@ private:
   // access the processor object that created it.
   AudioPluginAudioProcessor& processorRef;
   // Add components here.
-  RotarySliderWithLabels brightnessSlider;
+  RotarySliderWithLabels brightnessSlider, colorSlider;
   // peakFreqSlider, 
   // peakGainSlider, 
   // peakQualitySlider,
@@ -273,8 +275,9 @@ private:
   ResponseCurveComponent responseCurveComponent;
   LEDSimulator ledSimulator;
 
-  // using APVTS = juce::AudioProcessorValueTreeState;
-  // using Attachment = APVTS::SliderAttachment;
+  using APVTS = juce::AudioProcessorValueTreeState;
+  using Attachment = APVTS::SliderAttachment;
+  Attachment brightnessSliderAttachment, colorSliderAttachment;
   // Attachment peakFreqSliderAttachment,
   // peakGainSliderAttachment,
   // peakQualitySliderAttachment,

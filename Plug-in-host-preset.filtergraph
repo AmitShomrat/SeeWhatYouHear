@@ -5,7 +5,7 @@
     <PLUGIN name="Audio Input" descriptiveName="" format="Internal" category="I/O devices"
             manufacturer="JUCE" version="1.0" file="" uniqueId="246006c0"
             isInstrument="0" fileTime="0" infoUpdateTime="0" numInputs="0"
-            numOutputs="6" isShell="0" hasARAExtension="0" uid="246006c0"/>
+            numOutputs="2" isShell="0" hasARAExtension="0" uid="246006c0"/>
     <STATE>0.</STATE>
     <LAYOUT>
       <INPUTS>
@@ -31,7 +31,7 @@
       </OUTPUTS>
     </LAYOUT>
   </FILTER>
-  <FILTER uid="3" x="0.4217118997912317" y="0.7466517857142857" useARA="0">
+  <FILTER uid="3" x="0.4215991692627207" y="0.7458745874587459" useARA="0">
     <PLUGIN name="Audio Output" descriptiveName="" format="Internal" category="I/O devices"
             manufacturer="JUCE" version="1.0" file="" uniqueId="724248cb"
             isInstrument="0" fileTime="0" infoUpdateTime="0" numInputs="2"
@@ -39,7 +39,7 @@
     <STATE>0.</STATE>
     <LAYOUT>
       <INPUTS>
-        <BUS index="0" layout="L R C Lfe Ls Rs"/>
+        <BUS index="0" layout="L R"/>
       </INPUTS>
       <OUTPUTS>
         <BUS index="0" layout="disabled"/>
@@ -65,7 +65,7 @@
           uiLastY_Normal="176" uiopen_Normal="1">
     <PLUGIN name="AudioFilePlayer" format="VST3" category="Fx" manufacturer="matkatmusic"
             version="1.0.0" file="C:\Program Files\Common Files\VST3\AudioFilePlayer.vst3\Contents\x86_64-win\AudioFilePlayer.vst3"
-            uniqueId="efcf4f02" isInstrument="0" fileTime="195af9f07f4" infoUpdateTime="195f1786500"
+            uniqueId="efcf4f02" isInstrument="0" fileTime="195af9f07f4" infoUpdateTime="195f5e327f4"
             numInputs="2" numOutputs="2" isShell="0" hasARAExtension="0"
             uid="e412cafc"/>
     <STATE>356.VMjLgrU....O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DCNy3BTIISX1UEaho2ZVkUdAAkKAwDUigWRWkEcQ0VTucmUY4BQ1cUQLolShUELhsVRxHlXEYUXuE0UMIVTTkUdyYzX0EzQWEDLVokd2U0TvzzUZkFNqEEd3XUXkEkdgICMFEVcEYTV4cWQScFMFkkYLAyXuEkLX4VUrIlY5IDRWUULhoWPBIUcvXUVlYFdSg2Zwj0azXEVxEjTS81YWoDchcEVwDjKt3hKt3hKt3hKt3hYRUUSTEETIckVwTjQisVTTgkdEYjKAQjYPQSPWgUdMcjKAQjct3hdA4hKt3hKt3hKtnTUv.UQAslXuk0UXoWUFE0YQcEV77RRC8Vav8lak4Fc9vyKVMEUy.Ea0cVZtMEcgQWY9..</STATE>
@@ -82,10 +82,10 @@
           uiLastX_Normal="1167" uiLastY_Normal="333" uiopen_Normal="1">
     <PLUGIN name="SimpleEQ" format="VST3" category="Fx" manufacturer="ShomratDigitals"
             version="0.1.0" file="C:\Program Files\Common Files\VST3\SimpleEQ.vst3\Contents\x86_64-win\SimpleEQ.vst3"
-            uniqueId="eee6be86" isInstrument="0" fileTime="195f17772c0" infoUpdateTime="195f1786501"
+            uniqueId="eee6be86" isInstrument="0" fileTime="195f5e2a285" infoUpdateTime="195f5e327f4"
             numInputs="2" numOutputs="2" isShell="0" hasARAExtension="0"
             uid="7bfee732"/>
-    <STATE>623.VMjLgXl....O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9LCNy3BTEoFUAACUQQUUpQ0TA4hKAIlKTETRUAUSAAkKBolQY4BQlMTQlQkVscVLPASTGgjQIcUV2EjYic1cVM1ZAAkKIAkKt3hKt3hKlMidtDjKTETRUAUSAAkKBolQY4BQ1MTQlQkVscVLPASTGgzT2ESX1UkQtDSQFEFLUYjKAolKA4hKt3hKt3hKt3hKt.UQpQUPvPjKAgDTZoVPP4RST4xT0MlLPASTGgjQIcUV2EjYic1cVM1ZAAkKIAkKt3hKt3hKt3RStDjKTETRUAUSAAkKBolQY4BQlMTQ1oWXxzDUioWP3Qkb3XjXqEjYic1cVM1ZAAkKIAkKt3hKt3hKt3hKt3hKTETRUAUSAAkKBolQY4BQ1ITQtTUVmMmQHYTRWk0cAY1XmcmUisVPP4RRP4hKt3hKt3hKtokKA4BUAkTUP0TPP4hPpYTVtPjcBUjKUk0YyYDRGUjUZQWPlM1Y2Y0XqEDTtjDTt3hKt3hKt3hKt3hKtPUPIUETMEDTtHjZFkkKDY1PE4RUYc1bFgTTUcEVxslQiQSPlM1Y2Y0XqEDTtjDTt3hKt3hKt3hK2rhKt3hKt3hKt3hKt3haTU0PUQDU3sFaicVTWkEQEYzXmEDTtDDRTQlcEEiX4EDTtDDSt3xXt3hKt3hKt3hKlIUUMQUTPkzUZESQFM1ZQQEV5UjQ77RRC8Vav8lak4Fc9vyKVMEUy.Ea0cVZtMEcgQWY9..</STATE>
+    <STATE>191.VMjLgXK....O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9XCLt3hKt3hKt3hKt3hYRUUSTEETIckVwTjQisVTTgkdEYjKAQjYPQSPWgUdMcjKAQjct3hdA4hKt3hKt3hKtnTUv.UQAslXuk0UXoWUFE0YQcEV77RRC8Vav8lak4Fc9vyKVMEUy.Ea0cVZtMEcgQWY9..</STATE>
     <LAYOUT>
       <INPUTS>
         <BUS index="0" layout="L R"/>
