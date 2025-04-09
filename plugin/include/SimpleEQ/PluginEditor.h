@@ -1,6 +1,7 @@
 #pragma once
-
+// #include "LEDCommunication.h"
 #include "PluginProcessor.h"
+
 
 namespace audio_plugin {
 
@@ -213,6 +214,7 @@ juce::AudioProcessorParameter::Listener, juce::Timer
   void resized() override;
   private:
     AudioPluginAudioProcessor& processorRef;
+   // LEDCommunication& ledCommunication;
     juce::Atomic<bool> parametersChanged {false};
  
     // MonoChain monoChain;
@@ -263,6 +265,7 @@ private:
   // This reference is provided as a quick way for your editor to
   // access the processor object that created it.
   AudioPluginAudioProcessor& processorRef;
+  // ColorLearningSystem colorLearningSystem;
   // Add components here.
   RotarySliderWithLabels brightnessSlider, colorSlider;
   // peakFreqSlider, 

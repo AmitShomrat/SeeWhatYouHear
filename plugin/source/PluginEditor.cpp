@@ -22,7 +22,7 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
 {
   using namespace juce;
 
-  auto bounds = Rectangle<float>(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
+  auto bounds = juce::Rectangle<float>(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
   g.setColour(Colours::red);
   g.fillEllipse(bounds);
 
@@ -34,7 +34,7 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
     auto center = bounds.getCentre();
     Path p; 
 
-    Rectangle<float> r;
+    juce::Rectangle<float> r;
     r.setLeft(center.getX() - 2);
     r.setRight(center.getX() + 2);
     r.setTop(bounds.getY());
@@ -115,7 +115,7 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
     auto ang = jmap(pos, 0.f, 1.f, startAng, endAng);
     auto c = center.getPointOnCircumference(static_cast<float>(radius) + getTextHeight() * 0.5f + 1, ang);
 
-    Rectangle<float> r;
+    juce::Rectangle<float> r;
     auto str = labels[i].label;
     
     // Use utility function instead of duplicated code
@@ -149,37 +149,6 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
 
   return r;
 }
-
-// juce::String RotarySliderWithLabels::getDisplayString() const 
-// {
-//   if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(param)) 
-//     return choiceParam -> getCurrentChoiceName();
-  
-//   juce::String str;
-//   bool addK = false;
-  
-//   if(auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(param)) {
-//     float val = floatParam -> get();
-
-//     if(val > 999.f) {
-//       val /= 1000.f;
-//       addK = true;
-//     }
-//     str = juce::String(val, (addK ? 2 : 0));
-//   }
-
-//   else 
-//   {
-//     jassertfalse; //This should never happen.
-//   }
-
-//   if(suffix.isNotEmpty()) {
-//     str << " " ;
-//     if(addK) str << "k";
-//     str << suffix;
-//   }
-//  return str;
-// }
 
 //============================================================================================================================
 //This Component is a listener and Timer object.
@@ -275,29 +244,8 @@ void ResponseCurveComponent::timerCallback() {
   leftPathProducer.process(fftBounds, sampleRate);
   rightPathProducer.process(fftBounds, sampleRate);
 
-  if(parametersChanged.compareAndSetBool(false, true)) {// If the parameter value has changed, then update the monochain.
-    DBG("Parameter changed");
-    //update the monochain
-    //signal a repaint
-    // updateChain();
-  }
   repaint();
 }
-
-// void ResponseCurveComponent::updateChain() 
-// {
-
-//     auto chainSettings = getChainSettings(processorRef.apvts);
-//     auto peakCoefficients = makePeakFilter(chainSettings, processorRef.getSampleRate());
-//     updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
-
-//     auto lowCutCoefficients = makeLowCutFilter(chainSettings, processorRef.getSampleRate());
-//     auto highCutCoefficients = makeHighCutFilter(chainSettings, processorRef.getSampleRate());
-
-//     updateCutFilters(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
-//     updateCutFilters(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
-
-// }
 void ResponseCurveComponent::paint(juce::Graphics& g) {
   using namespace juce;
   g.fillAll(Colours::black);
@@ -307,58 +255,6 @@ void ResponseCurveComponent::paint(juce::Graphics& g) {
   // auto responseArea = getLocalBounds();
   auto responseArea = getAnalysisArea();
   
-  // auto w = responseArea.getWidth();
-
-  // auto& lowCut = monoChain.get<ChainPositions::LowCut>();
-  // auto& highCut = monoChain.get<ChainPositions::HighCut>();
-  // auto& peak = monoChain.get<ChainPositions::Peak>();
-
-  // auto sampleRate = processorRef.getSampleRate();
-
-  // std::vector<double> mags;
-  // mags.resize(w);
-  // for(int i = 0; i < w; ++i) {
-  //   double mag = 1.f;
-  //   auto freq = mapToLog10(double(i) / double(w), 20.0, 20000.0);
-
-  //   if(! monoChain.isBypassed<ChainPositions::Peak>()) 
-  //     mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
-
-  //   if(! lowCut.isBypassed<0>()) 
-  //     mag *= lowCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-  //   if(! lowCut.isBypassed<1>()) 
-  //     mag *= lowCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-  //   if(! lowCut.isBypassed<2>()) 
-  //     mag *= lowCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-  //   if(! lowCut.isBypassed<3>()) 
-  //     mag *= lowCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-
-
-  //   if(! highCut.isBypassed<0>()) 
-  //     mag *= highCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-  //   if(! highCut.isBypassed<1>()) 
-  //     mag *= highCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-  //   if(! highCut.isBypassed<2>()) 
-  //     mag *= highCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-  //   if(! highCut.isBypassed<3>()) 
-  //     mag *= highCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-
-  //   mags[i] = juce::Decibels::gainToDecibels(mag);
-  // }
-
-  // Path responseCurve;
-
-  // const double outputMin = responseArea.getBottom();
-  // const double outputMax = responseArea.getY();
-  // auto map = [outputMin, outputMax](double input) {
-  //   return juce::jmap(input, -24.0, 24.0, outputMin, outputMax);
-  // };
-
-  // responseCurve.startNewSubPath(static_cast<float>(responseArea.getX()), static_cast<float>(map(mags.front())));
-
-  // for (size_t i = 1; i < mags.size(); ++i) {
-  //   responseCurve.lineTo(static_cast<float>(responseArea.getX() + i), static_cast<float>(map(mags[i])));
-  // }
   auto leftChannelFFTPath = leftPathProducer.getPath();
   leftChannelFFTPath.applyTransform(AffineTransform().translation(static_cast<float>(responseArea.getX()), static_cast<float>(responseArea.getY())));
 
@@ -456,7 +352,7 @@ void ResponseCurveComponent::resized()
     // Use utility function instead of duplicated code
     auto textWidth = getTextWidth(g.getCurrentFont(), str);
 
-    Rectangle<int> r;
+    juce::Rectangle<int> r;
     r.setSize(static_cast<int>(textWidth), fontHeight);
     r.setCentre(static_cast<int>(x), 0);
     r.setY(1);
@@ -477,7 +373,7 @@ void ResponseCurveComponent::resized()
 
     auto textWidth = getTextWidth(g.getCurrentFont(), str);
 
-    Rectangle<int> r;
+    juce::Rectangle<int> r;
     r.setSize(static_cast<int>(textWidth), fontHeight);
     r.setX(static_cast<int>(getWidth() - textWidth));
     r.setCentre(r.getCentreX(), static_cast<int>(y));
@@ -551,7 +447,7 @@ void LEDSimulator::paint(juce::Graphics& g)
     // Create LED areas
     auto leftLedArea = bounds.withX(leftLabelArea.getRight()).withWidth(ledWidth);
     auto rightLedArea = bounds.withX(bounds.getRight() - labelWidth - ledWidth).withWidth(ledWidth);
-
+  
     auto color = static_cast<Color>(processorRef.apvts.getRawParameterValue("Color")->load());
     juce::Colour ledColor;
     switch(color) {
@@ -696,49 +592,21 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     : juce::AudioProcessorEditor(&p), processorRef(p),
       brightnessSlider(*processorRef.apvts.getParameter("Brightness"), ""),
       colorSlider(*processorRef.apvts.getParameter("Color"), ""),
-      // peakFreqSlider(*processorRef.apvts.getParameter("Peak Freq"), "Hz"),
-      // peakGainSlider(*processorRef.apvts.getParameter("Peak Gain"), "dB"),
-      // peakQualitySlider(*processorRef.apvts.getParameter("Peak Quality"), ""),
-      // lowCutFreqSlider(*processorRef.apvts.getParameter("LowCut Freq"), "Hz"),
-      // highCutFreqSlider(*processorRef.apvts.getParameter("HighCut Freq"), "Hz"),
-      // lowCutSlopeSlider(*processorRef.apvts.getParameter("LowCut Slope"), "dB/Oct"),
-      // highCutSlopeSlider(*processorRef.apvts.getParameter("HighCut Slope"), "dB/Oct"),
       responseCurveComponent(p),
       ledSimulator(p),
       brightnessSliderAttachment(processorRef.apvts, "Brightness", brightnessSlider),
       colorSliderAttachment(processorRef.apvts, "Color", colorSlider)
-      // peakFreqSliderAttachment(processorRef.apvts, "Peak Freq", peakFreqSlider),
-      // peakGainSliderAttachment(processorRef.apvts, "Peak Gain", peakGainSlider),
-      // peakQualitySliderAttachment(processorRef.apvts, "Peak Quality", peakQualitySlider),
-      // lowCutFreqSliderAttachment(processorRef.apvts, "LowCut Freq", lowCutFreqSlider),
-      // highCutFreqSliderAttachment(processorRef.apvts, "HighCut Freq", highCutFreqSlider),
-      // lowCutSlopeSliderAttachment(processorRef.apvts, "LowCut Slope", lowCutSlopeSlider),
-      // highCutSlopeSliderAttachment(processorRef.apvts, "HighCut Slope", highCutSlopeSlider)
 {
   // Add labels to all sliders
   // peakFreqSlider.labels.add({0.f, "20Hz"});
-  // peakFreqSlider.labels.add({1.f, "20kHz"});
-  // lowCutFreqSlider.labels.add({0.f, "20Hz"});
-  // lowCutFreqSlider.labels.add({1.f, "20kHz"});
-  // highCutFreqSlider.labels.add({0.f, "20Hz"});
-  // highCutFreqSlider.labels.add({1.f, "20kHz"});
-  // peakGainSlider.labels.add({0.f, "-24dB"});
-  // peakGainSlider.labels.add({1.f, "+24dB"});
-  // peakQualitySlider.labels.add({0.f, "0.1"});
-  // peakQualitySlider.labels.add({1.f, "10.0"});
-  // lowCutSlopeSlider.labels.add({0.f, "12"});
-  // lowCutSlopeSlider.labels.add({1.f, "48"});
-  // highCutSlopeSlider.labels.add({0.f, "12"});
-  // highCutSlopeSlider.labels.add({1.f, "48"});
 
-  // juce::ignoreUnused(processorRef);
+  // Initialize LEDComunication.
+  
 
   //Sliders are commented.
   for(auto* comp : getComps()) {
     this -> addAndMakeVisible(comp);
   }
-
-
   setSize(600,400);
 }
 
@@ -774,35 +642,12 @@ void AudioPluginAudioProcessorEditor::resized() {
   auto colorSliderArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.5));
   colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 0.10));
   colorSlider.setBounds(colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 3)));
-  
-  // Rest of existing layout code (commented out as we're hiding sliders)
-  // bounds.removeFromTop(5);
-  // auto lowCutArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
-  // auto highCutArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.5));
-  
-  // lowCutFreqSlider.setBounds(lowCutArea.removeFromTop(static_cast<int>(lowCutArea.getHeight() * 0.5)));
-  // lowCutSlopeSlider.setBounds(lowCutArea);
-  // highCutFreqSlider.setBounds(highCutArea.removeFromTop(static_cast<int>(highCutArea.getHeight() * 0.5)));
-  // highCutSlopeSlider.setBounds(highCutArea);
-
-  // peakFreqSlider.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.33)));
-  // peakGainSlider.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.5)));
-  // peakQualitySlider.setBounds(bounds);
 
 }
 
 std::vector<juce::Component*> AudioPluginAudioProcessorEditor::getComps() {
   // Commented out all sliders as requested
   return {
-    /*
-    &peakFreqSlider,
-    &peakGainSlider,
-    &peakQualitySlider,
-    &highCutFreqSlider,
-    &lowCutFreqSlider,
-    &lowCutSlopeSlider,
-    &highCutSlopeSlider,
-    */
     &colorSlider,
     &brightnessSlider,
     &responseCurveComponent,
@@ -810,3 +655,4 @@ std::vector<juce::Component*> AudioPluginAudioProcessorEditor::getComps() {
   };
 }
 }  // namespace audio_plugin
+

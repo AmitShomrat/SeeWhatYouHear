@@ -4,6 +4,7 @@
 #include <juce_dsp/juce_dsp.h>
 #include <juce_audio_formats/juce_audio_formats.h>
 
+
 #include <array>
 namespace audio_plugin {
 template <typename T>
@@ -147,75 +148,6 @@ enum Color {
   Yellow
 };
 
-// struct ChainSettings {
-//   float lowCutFreq{0}, highCutFreq{0}, 
-//   peakFreq{0}, peakGainInDecibels{0},
-//   peakQuality{1.f};
-//   Slope lowCutSlope{Slope::Slope_12}, highCutSlope{Slope::Slope_12};
-// };
-
-// ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
-
-  // //The using k.w is for aliasing.
-  // using Filter = juce::dsp::IIR::Filter<float>;
-  // //CutFilter is a chain of 4 filters because we have 4 bands. and then passing a processing context through eace member of the chain automatically.
-  // using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-  // //MonoChain is a chain of 3 filters (2 cut filters(Low and High) and 1 peaking filter).
-  // using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
-
-// enum ChainPositions {
-//     LowCut,
-//     Peak,
-//     HighCut
-//   };
-
-  // using Coefficients = Filter::CoefficientsPtr;
-  // void updateCoefficients(Coefficients& old, const Coefficients& replacements);
-
-  // Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
-
-  // template <int index, typename ChainType, typename CoefficientType>
-  // void update(ChainType& cutFilter, const CoefficientType& coefficients)
-  // {
-  //   updateCoefficients(cutFilter.template get<index>().coefficients, coefficients[index]);
-  //   cutFilter.template setBypassed<index>(false);
-  //   // cutFilter.template get<index>().coefficients = *coefficients[index];
-  // }
-
-  // template <typename ChainType, typename CoefficientType>
-  // void updateCutFilters(ChainType& monoCutFilter, 
-  //                       const CoefficientType& cutCoefficients, 
-  //                       const Slope& slope )
-  // {
-  //   monoCutFilter.template setBypassed<0>(true);
-  //   monoCutFilter.template setBypassed<1>(true);
-  //   monoCutFilter.template setBypassed<2>(true);
-  //   monoCutFilter.template setBypassed<3>(true);
-
-  //   switch ( slope )
-  //   {
-  //     case Slope_48:
-  //       update<3>(monoCutFilter, cutCoefficients);
-  //     case Slope_36:
-  //       update<2>(monoCutFilter, cutCoefficients);
-  //     case Slope_24:
-  //       update<1>(monoCutFilter, cutCoefficients);
-  //     case Slope_12:
-  //       update<0>(monoCutFilter, cutCoefficients);
-  //   }
-  // }
-  // inline auto makeLowCutFilter(const ChainSettings& chainSettings, double sampleRate)
-  // {
-  //   return juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq,
-  //                                                                                                     sampleRate, 2 * (1 + chainSettings.lowCutSlope) );
-  // }
-
-  // inline auto makeHighCutFilter(const ChainSettings& chainSettings, double sampleRate)
-  // {
-  //   return juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(chainSettings.highCutFreq,
-  //                                                                                                     sampleRate,2 * (1 + chainSettings.highCutSlope) );
-  // }
-
 class AudioPluginAudioProcessor : public juce::AudioProcessor {
 public:
   AudioPluginAudioProcessor();
@@ -275,9 +207,10 @@ public:
   // Helper to calculate channel level
   float calculateChannelLevel(const juce::AudioBuffer<float>& buffer, int channel);
 
+
 private:
   //MonoChain for each channel.
-  // MonoChain leftChain, rightChain; 
+  //MonoChain leftChain, rightChain; 
 
   // Audio file playback members
   juce::AudioFormatManager formatManager;
@@ -289,11 +222,10 @@ private:
   bool looping = false;
   double mySampleRate = 44100.0;
   
-  // void updatePeakFilter(const ChainSettings& chainSettings);   
-  // void updateLowCutFilters(const ChainSettings& chainSettings);
-  // void updateHighCutFilters(const ChainSettings& chainSettings);
-  // void updateFilters ();              
-
+  #if JUCE_DEBUG
+      std::unique_ptr<juce::FileLogger> fileLogger;
+  #endif
+              
   // juce::dsp::Oscillator<float> osc;       
   
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
