@@ -228,7 +228,7 @@ AudioPluginAudioProcessor::createParameterLayout() {
 
   juce::Array<juce::String> stringArray = {"red", "blue", "green", "yellow"};
   layout.add(std::make_unique<juce::AudioParameterChoice>(
-      "Color", "Color", stringArray, 0));
+      "Color", "Color", stringArray, 3));
 
   return layout;
 }

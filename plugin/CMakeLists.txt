@@ -24,10 +24,13 @@ juce_add_plugin(${PROJECT_NAME}
 # Sets the source files of the plugin project.
 target_sources(${PROJECT_NAME}
     PRIVATE
+        source/LEDCommunication.cpp
         source/PluginEditor.cpp
         source/PluginProcessor.cpp
         ${INCLUDE_DIR}/PluginEditor.h
         ${INCLUDE_DIR}/PluginProcessor.h
+        ${INCLUDE_DIR}/LEDCommunication.h
+        ${INCLUDE_DIR}/CommonDef.h
 )
 
 # Sets the include directories of the plugin project.

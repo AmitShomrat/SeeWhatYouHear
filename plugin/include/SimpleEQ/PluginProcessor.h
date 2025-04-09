@@ -141,13 +141,6 @@ private:
   }  
 };
 
-enum Color { 
-  Red,
-  Blue,
-  Green,
-  Yellow
-};
-
 class AudioPluginAudioProcessor : public juce::AudioProcessor {
 public:
   AudioPluginAudioProcessor();

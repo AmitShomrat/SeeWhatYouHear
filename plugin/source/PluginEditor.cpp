@@ -412,8 +412,8 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
   return bounds;
 }
 
-LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p) : 
-    processorRef(p)
+LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication> ledComm) : 
+    processorRef(p), ledComm(ledComm)
 {
     // Start timer for smooth level changes (60fps)
     startTimerHz(60);
@@ -448,22 +448,27 @@ void LEDSimulator::paint(juce::Graphics& g)
     auto leftLedArea = bounds.withX(leftLabelArea.getRight()).withWidth(ledWidth);
     auto rightLedArea = bounds.withX(bounds.getRight() - labelWidth - ledWidth).withWidth(ledWidth);
   
-    auto color = static_cast<Color>(processorRef.apvts.getRawParameterValue("Color")->load());
+    //this is for tests slider.
+    auto color = static_cast<Color>(static_cast<int>(processorRef.apvts.getRawParameterValue("Color")->load()));
     juce::Colour ledColor;
     switch(color) {
-      case Red:
+      case Color::Red:
         ledColor = juce::Colours::red;
         break;
-      case Blue:
+      case Color::Blue:
         ledColor = juce::Colours::blue;
         break; 
-      case Green:
+      case Color::Green:
         ledColor = juce::Colours::green;
         break;
-      case Yellow:
+      case Color::Yellow:
         ledColor = juce::Colours::yellow;
         break;
     }
+
+    //this is for tests slider.
+
+
 
     // Draw LEDs
     drawLED(g, leftLedArea, leftLevelSmoothed, ledColor);
@@ -497,7 +502,7 @@ void LEDSimulator::timerCallback()
     const float smoothingCoeff = /*JUCE_LIVE_CONSTANT(0.2f)*/ 0.9f; //Higher = Fast response, Lower = Slow response.
     leftLevelSmoothed = leftLevelSmoothed + (smoothingCoeff * (targetLeftLevel - leftLevelSmoothed)) + targetBrightness;
     rightLevelSmoothed = rightLevelSmoothed + (smoothingCoeff * (targetRightLevel - rightLevelSmoothed)) + targetBrightness;
-    
+    ledComm -> setColor(static_cast<Color>(static_cast<int>(processorRef.apvts.getRawParameterValue("Color")->load())));
     // Only repaint if levels changed significantly
     if (std::abs(leftLevelSmoothed - leftChannelLevel) > 0.01f || 
         std::abs(rightLevelSmoothed - rightChannelLevel) > 0.01f)
@@ -590,18 +595,16 @@ void LEDSimulator::drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, flo
 
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
     : juce::AudioProcessorEditor(&p), processorRef(p),
+      ledComm(std::make_unique<LEDCommunication>("COM3")),
       brightnessSlider(*processorRef.apvts.getParameter("Brightness"), ""),
       colorSlider(*processorRef.apvts.getParameter("Color"), ""),
       responseCurveComponent(p),
-      ledSimulator(p),
+      ledSimulator(p, ledComm),
       brightnessSliderAttachment(processorRef.apvts, "Brightness", brightnessSlider),
       colorSliderAttachment(processorRef.apvts, "Color", colorSlider)
 {
   // Add labels to all sliders
   // peakFreqSlider.labels.add({0.f, "20Hz"});
-
-  // Initialize LEDComunication.
-  
 
   //Sliders are commented.
   for(auto* comp : getComps()) {
@@ -654,5 +657,6 @@ std::vector<juce::Component*> AudioPluginAudioProcessorEditor::getComps() {
     &ledSimulator
   };
 }
+
 }  // namespace audio_plugin
 

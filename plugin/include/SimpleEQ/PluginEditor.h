@@ -1,7 +1,8 @@
 #pragma once
-// #include "LEDCommunication.h"
-#include "PluginProcessor.h"
 
+#include "PluginProcessor.h"
+#include "LEDCommunication.h"
+#include "CommonDef.h"
 
 namespace audio_plugin {
 
@@ -69,6 +70,8 @@ struct FFTDataGenerator
   }
 
 private:
+
+
   FFTOrder order;
   BlockType fftData;
   std::unique_ptr<juce::dsp::FFT> forwardFFT;
@@ -234,7 +237,7 @@ juce::AudioProcessorParameter::Listener, juce::Timer
 // Add LEDSimulator component
 struct LEDSimulator : juce::Component, juce::Timer
 {
-    LEDSimulator(AudioPluginAudioProcessor& p);
+    LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication> ledComm);
     ~LEDSimulator() override;
     
     void paint(juce::Graphics& g) override;
@@ -243,6 +246,7 @@ struct LEDSimulator : juce::Component, juce::Timer
     juce::Rectangle<float> getLEDArea();
 private:
     AudioPluginAudioProcessor& processorRef;
+    std::shared_ptr<LEDCommunication> ledComm;
     float leftChannelLevel = {0.0f};
     float rightChannelLevel = {0.0f};
     
@@ -265,29 +269,17 @@ private:
   // This reference is provided as a quick way for your editor to
   // access the processor object that created it.
   AudioPluginAudioProcessor& processorRef;
+  // Initialize LEDCommunication.
+  std::shared_ptr<LEDCommunication> ledComm;
   // ColorLearningSystem colorLearningSystem;
   // Add components here.
-  RotarySliderWithLabels brightnessSlider, colorSlider;
-  // peakFreqSlider, 
-  // peakGainSlider, 
-  // peakQualitySlider,
-  // lowCutFreqSlider, 
-  // highCutFreqSlider,
-  // lowCutSlopeSlider,
-  // highCutSlopeSlider; 
+  RotarySliderWithLabels brightnessSlider, colorSlider; 
   ResponseCurveComponent responseCurveComponent;
   LEDSimulator ledSimulator;
 
   using APVTS = juce::AudioProcessorValueTreeState;
   using Attachment = APVTS::SliderAttachment;
   Attachment brightnessSliderAttachment, colorSliderAttachment;
-  // Attachment peakFreqSliderAttachment,
-  // peakGainSliderAttachment,
-  // peakQualitySliderAttachment,
-  // lowCutFreqSliderAttachment,
-  // highCutFreqSliderAttachment,
-  // lowCutSlopeSliderAttachment,
-  // highCutSlopeSliderAttachment;
 
   std::vector<juce::Component*> getComps();
 
