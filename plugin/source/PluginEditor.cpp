@@ -85,10 +85,10 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
 
   auto sliderBounds = getSliderBounds();
 
-  g.setColour(Colours::red);
-  g.drawRect(getLocalBounds()); //Debugging tests.
-  g.setColour(Colours::white);
-  g.drawRect(sliderBounds); //Debugging tests.
+  // g.setColour(Colours::red);
+  // g.drawRect(getLocalBounds()); //Debugging tests.
+  // g.setColour(Colours::white);
+  // g.drawRect(sliderBounds); //Debugging tests.
 
   getLookAndFeel().drawRotarySlider(g, 
                                     sliderBounds.getX(), 
@@ -428,10 +428,10 @@ void LEDSimulator::paint(juce::Graphics& g)
 {
     auto bounds = getLEDArea();
 
-    g.setColour(juce::Colours::red);
-    g.drawRect(getLocalBounds());
-    g.setColour(juce::Colours::white);
-    g.drawRect(bounds);
+    // g.setColour(juce::Colours::red);
+    // g.drawRect(getLocalBounds());
+    // g.setColour(juce::Colours::white);
+    // g.drawRect(bounds);
     // Draw background
     g.setColour(juce::Colours::black);
     g.fillRect(bounds);
@@ -499,14 +499,21 @@ void LEDSimulator::timerCallback()
     float targetRightLevel = processorRef.rightChannelLevel.get();
     float targetBrightness = processorRef.apvts.getRawParameterValue("Brightness")->load();
     // Apply smoothing
-    const float smoothingCoeff = /*JUCE_LIVE_CONSTANT(0.2f)*/ 0.9f; //Higher = Fast response, Lower = Slow response.
+    const float smoothingCoeff = 0.9f; //Higher = Fast response, Lower = Slow response.
     leftLevelSmoothed = leftLevelSmoothed + (smoothingCoeff * (targetLeftLevel - leftLevelSmoothed)) + targetBrightness;
     rightLevelSmoothed = rightLevelSmoothed + (smoothingCoeff * (targetRightLevel - rightLevelSmoothed)) + targetBrightness;
     
     // Update physical LED color and brightness.
     ledComm -> setColor(static_cast<Color>(static_cast<int>(processorRef.apvts.getRawParameterValue("Color")->load())));
-    ledComm -> setBrightness(juce::jlimit(0, 255, static_cast<int>(targetLeftLevel * 255.0f)));
+    
+    //TODO: Optimize the scaled level to the brightness 
+    auto leftLevelScaled = juce::jlimit(0.f, 1.f, targetLeftLevel);
+    auto skewedleftLevelScale = std::pow(leftLevelScaled, 10.f);
+    ledComm -> setBrightness( juce::jlimit(0.f, 1.f, skewedleftLevelScale ) * 255.f );
+    //=========================================
 
+
+    
     // Only repaint if levels changed significantly
     if (std::abs(leftLevelSmoothed - leftChannelLevel) > 0.01f || 
         std::abs(rightLevelSmoothed - rightChannelLevel) > 0.01f)

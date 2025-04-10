@@ -42,24 +42,27 @@ void LEDCommunication::run()
 
     const int numLEDs = 300;
     std::vector<unsigned char> ledData(numLEDs * 3 + 1 + 1);
+    DWORD bytesWritten;
     while(!threadShouldExit())
     {
         ledData[0] = static_cast<unsigned char>(0xFF);
         auto brightness = currentBrightness.load();
         ledData[1] = static_cast<unsigned char>(brightness);
 
+        std::cout << "brightness: " << brightness << std::endl;
+
         switch(currentColor.load()){
             case Color::Red:
                 for(int i = 0; i < 149; ++i)
             {
-                ledData[i * 3 + 2] = 0;
+                ledData[i * 3 + 2] = 255;
                 ledData[i * 3 + 3] = 0;
                 ledData[i * 3 + 4] = 0;
             }
 
             for(int i = 150; i < 299; ++i)
             {
-                ledData[i * 3 + 2] = 0;
+                ledData[i * 3 + 2] = 255;
                 ledData[i * 3 + 3] = 0;
                 ledData[i * 3 + 4] = 0;
             }        
@@ -114,11 +117,31 @@ void LEDCommunication::run()
             break;       
         }
 
-            DWORD bytesWritten;
             // unsigned char sync = 0xFF;
             // WriteFile(hserial, &sync, 1, &bytesWritten, NULL);
             WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL);
     }
-            CloseHandle(hserial);
+    //Turn off all LEDs
+    ledData[0] = static_cast<unsigned char>(0xFF);
+    auto brightness = currentBrightness.load();
+    ledData[1] = static_cast<unsigned char>(brightness);
+
+    for(int i = 0; i < 149; ++i)
+    {
+        ledData[i * 3 + 2] = 0;
+        ledData[i * 3 + 3] = 0;
+        ledData[i * 3 + 4] = 0;
+    }
+
+    for(int i = 150; i < 299; ++i)
+    {
+        ledData[i * 3 + 2] = 0;
+        ledData[i * 3 + 3] = 0;
+        ledData[i * 3 + 4] = 0;
+    }
+    WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL);
+
+
+    CloseHandle(hserial);
 }
 

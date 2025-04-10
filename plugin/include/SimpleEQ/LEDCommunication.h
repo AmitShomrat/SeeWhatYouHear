@@ -9,7 +9,7 @@ class LEDCommunication : public juce::Thread {
     ~LEDCommunication();
     void run() override;
     void setColor(Color c){currentColor.store(c);}
-    void setBrightness(int brightness){currentBrightness.store(static_cast<int>(brightness));}
+    void setBrightness(float brightness){ currentBrightness.store(static_cast<int>(brightness)); }
     
   private:
     juce::String portName;
