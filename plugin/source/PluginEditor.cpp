@@ -508,8 +508,12 @@ void LEDSimulator::timerCallback()
     
     //TODO: Optimize the scaled level to the brightness 
     auto leftLevelScaled = juce::jlimit(0.f, 1.f, targetLeftLevel);
-    auto skewedleftLevelScale = std::pow(leftLevelScaled, 10.f);
-    ledComm -> setBrightness( juce::jlimit(0.f, 1.f, skewedleftLevelScale ) * 255.f );
+    auto skewedleftLevelScale = std::pow(leftLevelScaled, 5.f);
+  
+    auto rightLevelScaled = juce::jlimit(0.f, 1.f, targetRightLevel);
+    auto skewedrightLevelScale = std::pow(rightLevelScaled, 5.f);
+
+    ledComm -> setBrightness(juce::jlimit(0.f, 1.f, skewedleftLevelScale ) * 255.f, juce::jlimit(0.f, 1.f, skewedrightLevelScale ) * 255.f );
     //=========================================
 
 
@@ -614,9 +618,13 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
       brightnessSliderAttachment(processorRef.apvts, "Brightness", brightnessSlider),
       colorSliderAttachment(processorRef.apvts, "Color", colorSlider)
 {
+  //להגדיר איך אפשר לגזור כלל החלטה, להגדיר בעיית אופטימיזציה. 
+  //ואז צריך לפתור אותה
+  //דסיז'ן רול למשל ערך מסויים מעל הטרש ימופה לרמת בהירות גבוה.
+  //אם יש כמה מספרים שמסכמים את כל המספרים של המשתנים שלי ומסכמים אותם בכל מקום אז זה יהיה מהיר יותר.
+
   // Add labels to all sliders
   // peakFreqSlider.labels.add({0.f, "20Hz"});
-
   //Sliders are commented.
   for(auto* comp : getComps()) {
     this -> addAndMakeVisible(comp);
