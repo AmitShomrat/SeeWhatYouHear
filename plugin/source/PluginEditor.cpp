@@ -502,7 +502,11 @@ void LEDSimulator::timerCallback()
     const float smoothingCoeff = /*JUCE_LIVE_CONSTANT(0.2f)*/ 0.9f; //Higher = Fast response, Lower = Slow response.
     leftLevelSmoothed = leftLevelSmoothed + (smoothingCoeff * (targetLeftLevel - leftLevelSmoothed)) + targetBrightness;
     rightLevelSmoothed = rightLevelSmoothed + (smoothingCoeff * (targetRightLevel - rightLevelSmoothed)) + targetBrightness;
+    
+    // Update physical LED color and brightness.
     ledComm -> setColor(static_cast<Color>(static_cast<int>(processorRef.apvts.getRawParameterValue("Color")->load())));
+    ledComm -> setBrightness(juce::jlimit(0, 255, static_cast<int>(targetLeftLevel * 255.0f)));
+
     // Only repaint if levels changed significantly
     if (std::abs(leftLevelSmoothed - leftChannelLevel) > 0.01f || 
         std::abs(rightLevelSmoothed - rightChannelLevel) > 0.01f)
