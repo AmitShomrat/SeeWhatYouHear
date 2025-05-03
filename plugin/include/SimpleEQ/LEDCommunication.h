@@ -47,7 +47,7 @@ class LEDCommunication : public juce::Thread {
     std::vector<unsigned char> ledData; 
 
     std::atomic<Color> currentColor = Color::Yellow;
-    std::atomic<int> currentLeftBrightness = 100;
-    std::atomic<int> currentRightBrightness = 100;
+    std::atomic<int> currentLeftBrightness = 0;
+    std::atomic<int> currentRightBrightness = 0;
 
 };

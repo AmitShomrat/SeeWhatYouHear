@@ -1,8 +1,11 @@
 #pragma once
 
 #include "PluginProcessor.h"
-#include "LEDCommunication.h"
 #include "CommonDef.h"
+#include <memory>
+
+// Forward declaration
+class LEDCommunication;
 
 namespace audio_plugin {
 
@@ -269,9 +272,8 @@ private:
   // This reference is provided as a quick way for your editor to
   // access the processor object that created it.
   AudioPluginAudioProcessor& processorRef;
-  // Initialize LEDCommunication.
   std::shared_ptr<LEDCommunication> ledComm;
-  // ColorLearningSystem colorLearningSystem;
+
   // Add components here.
   RotarySliderWithLabels brightnessSlider, colorSlider; 
   ResponseCurveComponent responseCurveComponent;

@@ -3,7 +3,10 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 #include <juce_audio_formats/juce_audio_formats.h>
+#include <memory>
 
+// Forward declaration
+class LEDCommunication;
 
 #include <array>
 namespace audio_plugin {
@@ -191,7 +194,9 @@ public:
   bool isLooping() const;
   void startPlayback();
   void stopPlayback();
+  void updateLEDs(float leftLevel, float rightLevel);
   bool isPlaying() const { return playing; }
+
 
   // Add channel level tracking
   juce::Atomic<float> leftChannelLevel { 0.0f };
@@ -200,10 +205,14 @@ public:
   // Helper to calculate channel level
   float calculateChannelLevel(const juce::AudioBuffer<float>& buffer, int channel);
 
+  // Getter for LEDCommunication
+  std::shared_ptr<LEDCommunication> getLEDCommunication() const { return ledComm; }
 
 private:
   //MonoChain for each channel.
   //MonoChain leftChain, rightChain; 
+
+  std::shared_ptr<LEDCommunication> ledComm;
 
   // Audio file playback members
   juce::AudioFormatManager formatManager;

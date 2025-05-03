@@ -1,5 +1,6 @@
 #include "SimpleEQ/PluginProcessor.h"
 #include "SimpleEQ/PluginEditor.h"
+#include "SimpleEQ/LEDCommunication.h"
 #include <juce_dsp/juce_dsp.h>
 
 namespace audio_plugin {
@@ -12,8 +13,8 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 #endif
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-      ) {
-        // Initialize LED communication
+      ),
+      ledComm(std::make_shared<LEDCommunication>("COM3")) {
     // Setup debug logging
     #if JUCE_DEBUG
         // Create a log file in the user's documents directory
@@ -168,6 +169,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     rightChannelLevel.set(calculateChannelLevel(buffer, 1));
 
   // updateFilters();
+  updateLEDs(leftChannelLevel.get(), rightChannelLevel.get());
 
   juce::dsp::AudioBlock<float> block(buffer);
   
@@ -191,13 +193,22 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
   rightChannelFifo.process(buffer);
 }
 
+void AudioPluginAudioProcessor::updateLEDs(float leftLevel, float rightLevel) {
+    auto leftLevelScaled = juce::jlimit(0.f, 1.f, leftLevel);
+    auto skewedleftLevelScale = std::pow(leftLevelScaled, 5.f);
+  
+    auto rightLevelScaled = juce::jlimit(0.f, 1.f, rightLevel);
+    auto skewedrightLevelScale = std::pow(rightLevelScaled, 5.f);
+
+    ledComm -> setBrightness(juce::jlimit(0.f, 1.f, skewedleftLevelScale ) * 255.f, juce::jlimit(0.f, 1.f, skewedrightLevelScale ) * 255.f );
+}
+
 bool AudioPluginAudioProcessor::hasEditor() const {
   return true;  // (change this to false if you choose to not supply an editor)
 }
 
 juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor() {
   return new AudioPluginAudioProcessorEditor(*this);
-  // return new juce::GenericAudioProcessorEditor(*this);
 }
 
 void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
@@ -205,15 +216,19 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
   // You could do that either as raw data, or use the XML or ValueTree classes
   // as intermediaries to make it easy to save and load complex data.
   juce::MemoryOutputStream mos(destData, true);
-  // apvts.state.writeToStream(mos);
+  apvts.state.writeToStream(mos);
   // juce::ignoreUnused(destData);
 }
 
-void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
-  // You should use this method to restore your parameters from this memory
-  // block, whose contents will have been created by the getStateInformation()
-  // call.
-  juce::ignoreUnused(data, sizeInBytes);
+void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
+{
+    // You should use this method to restore your parameters from this memory block,
+    // whose contents will have been created by the getStateInformation() call.
+    auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
+    if (tree.isValid())
+    {
+        apvts.replaceState(tree);
+    }
 }
 
 

@@ -1,5 +1,6 @@
 #include "SimpleEQ/PluginEditor.h"
 #include "SimpleEQ/PluginProcessor.h"
+#include "SimpleEQ/LEDCommunication.h"
 #include <juce_gui_extra/juce_gui_extra.h>
 
 namespace audio_plugin {
@@ -495,7 +496,7 @@ void LEDSimulator::resized()
 void LEDSimulator::timerCallback()
 {
     // Get channel levels
-    float targetLeftLevel = processorRef.leftChannelLevel.get();
+    float targetLeftLevel = processorRef.leftChannelLevel.get();// We want to refactor the calcutions of leve in order to maintain level parts for each module (ledComm , GUI ).
     float targetRightLevel = processorRef.rightChannelLevel.get();
     float targetBrightness = processorRef.apvts.getRawParameterValue("Brightness")->load();
     // Apply smoothing
@@ -507,13 +508,7 @@ void LEDSimulator::timerCallback()
     ledComm -> setColor(static_cast<Color>(static_cast<int>(processorRef.apvts.getRawParameterValue("Color")->load())));
     
     //TODO: Optimize the scaled level to the brightness 
-    auto leftLevelScaled = juce::jlimit(0.f, 1.f, targetLeftLevel);
-    auto skewedleftLevelScale = std::pow(leftLevelScaled, 5.f);
-  
-    auto rightLevelScaled = juce::jlimit(0.f, 1.f, targetRightLevel);
-    auto skewedrightLevelScale = std::pow(rightLevelScaled, 5.f);
 
-    ledComm -> setBrightness(juce::jlimit(0.f, 1.f, skewedleftLevelScale ) * 255.f, juce::jlimit(0.f, 1.f, skewedrightLevelScale ) * 255.f );
     //=========================================
 
 
@@ -609,8 +604,9 @@ void LEDSimulator::drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, flo
 }
 
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
-    : juce::AudioProcessorEditor(&p), processorRef(p),
-      ledComm(std::make_unique<LEDCommunication>("COM3")),
+    : juce::AudioProcessorEditor(&p), 
+      processorRef(p),
+      ledComm(p.getLEDCommunication()),
       brightnessSlider(*processorRef.apvts.getParameter("Brightness"), ""),
       colorSlider(*processorRef.apvts.getParameter("Color"), ""),
       responseCurveComponent(p),
@@ -618,14 +614,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
       brightnessSliderAttachment(processorRef.apvts, "Brightness", brightnessSlider),
       colorSliderAttachment(processorRef.apvts, "Color", colorSlider)
 {
-  //להגדיר איך אפשר לגזור כלל החלטה, להגדיר בעיית אופטימיזציה. 
-  //ואז צריך לפתור אותה
-  //דסיז'ן רול למשל ערך מסויים מעל הטרש ימופה לרמת בהירות גבוה.
-  //אם יש כמה מספרים שמסכמים את כל המספרים של המשתנים שלי ומסכמים אותם בכל מקום אז זה יהיה מהיר יותר.
-
-  // Add labels to all sliders
-  // peakFreqSlider.labels.add({0.f, "20Hz"});
-  //Sliders are commented.
   for(auto* comp : getComps()) {
     this -> addAndMakeVisible(comp);
   }
