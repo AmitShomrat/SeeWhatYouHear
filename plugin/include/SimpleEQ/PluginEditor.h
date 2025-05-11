@@ -2,16 +2,19 @@
 
 #include "PluginProcessor.h"
 #include "CommonDef.h"
+#include "FFTProcessor.h"
 #include <memory>
 
 // Forward declaration
 class LEDCommunication;
+class FFTProcessor;
 
 namespace audio_plugin {
 
 // Add utility function to measure text width
 float getTextWidth(const juce::Font& font, const juce::String& text);
 
+/*Before refactoring
 enum FFTOrder {
   order2048 = 11,
   order4096 = 12,
@@ -20,10 +23,7 @@ enum FFTOrder {
 
 template <typename BlockType>
 struct FFTDataGenerator
-{
-  /** 
-   * produces the FFT data from an audio buffer 
-   */ 
+{ 
   void produceFFTDataForRendering(const juce::AudioBuffer<float>& audioData, const float negativeInfinity)
   {
     const auto fftSize = getFFTSize();
@@ -73,14 +73,13 @@ struct FFTDataGenerator
   }
 
 private:
-
-
   FFTOrder order;
   BlockType fftData;
   std::unique_ptr<juce::dsp::FFT> forwardFFT;
   std::unique_ptr<juce::dsp::WindowingFunction<float>> window;
   Fifo<BlockType> fftDataFifo;
 };
+*/
 
 template <typename PathType>
 struct AnalyzerPathGenerator
@@ -183,20 +182,26 @@ struct RotarySliderWithLabels : juce::Slider {
 };
 
 struct PathProducer {
+  /*Before refactoring:
   PathProducer(SingleChannelSampleFifo<float>& scsf) :
   leftChannelFifo(&scsf) 
   {
       leftChannelFFTDataGenerator.changeOrder(FFTOrder::order2048);
       monoBuffer.setSize(1, leftChannelFFTDataGenerator.getFFTSize());
   }
+  */
+  PathProducer(std::shared_ptr<FFTProcessor> fftProcessor) : leftChannelFFTProcessor(fftProcessor){}
+
   void process(juce::Rectangle<float> fftBounds, double sampleRate);
   juce::Path getPath() {return leftChannelFFTPath;}
   private:
-    SingleChannelSampleFifo<float>* leftChannelFifo;
+  /* Before refactoring:
+    SingleChannelSampleFifo<float>* leftChannelFifo; // FFTProcessor
+    juce::AudioBuffer<float> monoBuffer;// FFTProcessor
 
-    juce::AudioBuffer<float> monoBuffer;
-
-    FFTDataGenerator<std::vector<float>> leftChannelFFTDataGenerator;
+    FFTDataGenerator<std::vector<float>> leftChannelFFTDataGenerator; // FFTProcessor
+  */
+    std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
 
     AnalyzerPathGenerator<juce::Path> pathProducer;
 
@@ -240,7 +245,7 @@ juce::AudioProcessorParameter::Listener, juce::Timer
 // Add LEDSimulator component
 struct LEDSimulator : juce::Component, juce::Timer
 {
-    LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication> ledComm);
+    LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication>& ledComm);
     ~LEDSimulator() override;
     
     void paint(juce::Graphics& g) override;
@@ -272,6 +277,7 @@ private:
   // This reference is provided as a quick way for your editor to
   // access the processor object that created it.
   AudioPluginAudioProcessor& processorRef;
+  
   std::shared_ptr<LEDCommunication> ledComm;
 
   // Add components here.

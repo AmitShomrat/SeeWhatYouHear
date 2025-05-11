@@ -14,7 +14,9 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
       ),
-      ledComm(std::make_shared<LEDCommunication>("COM3")) {
+      ledComm(std::make_shared<audio_plugin::LEDCommunication>("COM3")),
+      leftChannelFFTProcessor(std::make_shared<FFTProcessor>(leftChannelFifo)),
+      rightChannelFFTProcessor(std::make_shared<FFTProcessor>(rightChannelFifo)) {
     // Setup debug logging
     #if JUCE_DEBUG
         // Create a log file in the user's documents directory
@@ -109,6 +111,9 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   leftChannelFifo.prepare(samplesPerBlock);
   rightChannelFifo.prepare(samplesPerBlock);
 
+  // leftChannelFFTProcessor->prepare(sampleRate);
+  // rightChannelFFTProcessor->prepare(sampleRate);
+
   // osc.initialise([](float x) { return std::sin(x); });
   // spec.numChannels = getTotalNumOutputChannels();
   // osc.prepare(spec);
@@ -194,13 +199,9 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 }
 
 void AudioPluginAudioProcessor::updateLEDs(float leftLevel, float rightLevel) {
-    auto leftLevelScaled = juce::jlimit(0.f, 1.f, leftLevel);
-    auto skewedleftLevelScale = std::pow(leftLevelScaled, 5.f);
-  
-    auto rightLevelScaled = juce::jlimit(0.f, 1.f, rightLevel);
-    auto skewedrightLevelScale = std::pow(rightLevelScaled, 5.f);
-
-    ledComm -> setBrightness(juce::jlimit(0.f, 1.f, skewedleftLevelScale ) * 255.f, juce::jlimit(0.f, 1.f, skewedrightLevelScale ) * 255.f );
+    if (ledComm) {
+        ledComm->setBrightness(leftLevel, rightLevel);
+    }
 }
 
 bool AudioPluginAudioProcessor::hasEditor() const {

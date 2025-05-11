@@ -1,16 +1,20 @@
 #pragma once
-#include "PluginProcessor.h"
-#include "CommonDef.h"
+#include "CommonDef.h"  // Must come first for Color and RGB definitions
+#include <atomic>
 #include <vector>
+#include <juce_core/juce_core.h>
+#include <juce_events/juce_events.h>
+
+namespace audio_plugin {  // Add namespace to match Color and RGB definitions
 
 class LEDCommunication : public juce::Thread {
   public:
     LEDCommunication(const juce::String& portName);
     ~LEDCommunication();
     void run() override;
-    void setColor(Color c){currentColor.store(c);}
+    void setColor(Color c) { currentColor.store(c); }
 
-    void setBrightness(float leftBrightness, float rightBrightness )
+    void setBrightness(float leftBrightness, float rightBrightness)
     { 
       currentLeftBrightness.store(static_cast<int>(leftBrightness)); 
       currentRightBrightness.store(static_cast<int>(rightBrightness));
@@ -46,8 +50,10 @@ class LEDCommunication : public juce::Thread {
     const int numLEDs = 300;
     std::vector<unsigned char> ledData; 
 
-    std::atomic<Color> currentColor = Color::Yellow;
-    std::atomic<int> currentLeftBrightness = 0;
-    std::atomic<int> currentRightBrightness = 0;
+    std::atomic<Color> currentColor{Color::Yellow};
+    std::atomic<int> currentLeftBrightness{0};
+    std::atomic<int> currentRightBrightness{0};
 
 };
+
+} // namespace audio_plugin

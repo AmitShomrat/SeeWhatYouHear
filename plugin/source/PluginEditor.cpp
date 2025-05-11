@@ -9,7 +9,7 @@ namespace audio_plugin {
 float getTextWidth(const juce::Font& font, const juce::String& text)
 {
     juce::GlyphArrangement glyphs;
-    glyphs.addFittedText(font, text, 0.0f, 0.0f, 1000.0f, 100.0f, juce::Justification::left, 1);
+    glyphs.addFittedText(font, text, 0.0f, 0.0f, 1000.0f, 100.0f, juce::Justification::left, 1, 0.f);
     return glyphs.getBoundingBox(0, -1, true).getWidth();
 }
 
@@ -155,19 +155,19 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
 //This Component is a listener and Timer object.
 ResponseCurveComponent::ResponseCurveComponent(AudioPluginAudioProcessor& p)
 : processorRef(p), 
-// leftChannelFifo(&processorRef.leftChannelFifo)
+/*Before refactoring: 
 leftPathProducer(processorRef.leftChannelFifo), 
 rightPathProducer(processorRef.rightChannelFifo)
+*/
+leftPathProducer(processorRef.leftChannelFFTProcessor),
+rightPathProducer(processorRef.rightChannelFFTProcessor)
 {  
 
-  const auto& params = processorRef.getParameters();
-  for(auto param : params) {
-    param -> addListener(this);// To observe the changes in the parameters.
-  }
-
-  
-  // updateChain();
-  
+  // const auto& params = processorRef.getParameters();
+  // for(auto param : params) {
+  //   param -> addListener(this); //To observe the changes in the parameters.
+  // }
+  // updateChain();  
   startTimerHz(60); //timerCallback function is called 60 times per second.
 }
 //This function is called when the parameter value changes.
@@ -177,66 +177,77 @@ void ResponseCurveComponent::parameterValueChanged (int parameterIndex, float ne
 }
 
 ResponseCurveComponent::~ResponseCurveComponent() {
-  const auto& params = processorRef.getParameters();
-  for(auto param : params) {
-    param -> removeListener(this);
-  }
+  // const auto& params = processorRef.getParameters();
+  // for(auto param : params) {
+  //   param -> removeListener(this);
+  // }
 }
-
 void PathProducer::process(juce::Rectangle<float> fftBounds, double sampleRate) 
 {
-  juce::AudioBuffer<float> tempIncomingBuffer;
-  //As long as there are complete buffers available, process them.
-  while(leftChannelFifo->getNumCompleteBuffersAvailable() > 0)
-  {
-    //If there is a complete buffer available, get it.
-    if(leftChannelFifo->getAudioBuffer(tempIncomingBuffer))
+    juce::ignoreUnused(fftBounds, sampleRate);  // Add this line to fix the warning
+    /*Before refactoring:
+    juce::AudioBuffer<float> tempIncomingBuffer;
+    //As long as there are complete and available buffers from the SCSF, process them.
+    while(leftChannelFifo->getNumCompleteBuffersAvailable() > 0)
     {
-      auto size = tempIncomingBuffer.getNumSamples();
-      //Shift the buffer to the left.
-      juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, 0), 
-                                        monoBuffer.getReadPointer(0, size), 
-                                        monoBuffer.getNumSamples() - size);
+      //If there is a complete buffer available, get it.
+      if(leftChannelFifo->getAudioBuffer(tempIncomingBuffer))
+      {
+        auto size = tempIncomingBuffer.getNumSamples();
+        //Shift the buffer to the left.
+        juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, 0), 
+                                          monoBuffer.getReadPointer(0, size), 
+                                          monoBuffer.getNumSamples() - size);
 
-      //Copy the new samples to the end of the buffer.
-      juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, monoBuffer.getNumSamples() - size),
-                                        tempIncomingBuffer.getReadPointer(0, 0), 
-                                        size);
+        //Copy the new samples to the end of the buffer.
+        juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, monoBuffer.getNumSamples() - size),
+                                          tempIncomingBuffer.getReadPointer(0, 0), 
+                                          size);
 
-      leftChannelFFTDataGenerator.produceFFTDataForRendering(monoBuffer, -48.f);                                      
+        leftChannelFFTDataGenerator.produceFFTDataForRendering(monoBuffer, -48.f);
+      }
     }
-  }
 
-   /*
-  if there are FFT data buffer to pull.
-    if we can pull a buffer, generate a path 
-  */
-  const auto fftSize = leftChannelFFTDataGenerator.getFFTSize();
-  /*
-  48000 / 2048 = 23Hz <- this is the bin width.
-  */
-  const auto binWidth = sampleRate / static_cast<double>(fftSize);
+        // if there are FFT data buffer to pull.
+        // if we can pull a buffer, generate a path.
+    const auto fftSize = leftChannelFFTDataGenerator.getFFTSize();
 
-  while(leftChannelFFTDataGenerator.getNumAvailableFFTDataBlocks() > 0)
-  {
-    std::vector<float> fftData;
-    if(leftChannelFFTDataGenerator.getFFTData(fftData))
+    // 48000 / 2048 = 23Hz <- this is the bin width.
+
+    const auto binWidth = sampleRate / static_cast<double>(fftSize);
+
+    */
+    /*Before refactoring:
+    while(leftChannelFFTProcessor.getNumAvailableFFTDataBlocks() > 0)//Consuming FFTData blocks in order to generate a path.
     {
-      pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
+      std::vector<float> fftData;
+      if(leftPathProducer.getFFTData(fftData))
+      {
+        pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
+      }
     }
-  }
-
-  /*
-  while there are path producer available, 
-      pull as many as you can 
-            display the most recent one.
-  */
-
-  while(pathProducer.getNumPathsAvailable() > 0)
-  {
-    pathProducer.getPath(leftChannelFFTPath );
-  }
+    */
+    while(leftChannelFFTProcessor-> isAvailable())//Consuming FFTData blocks in order to generate a path.
+    {
+      std::vector<float> fftData;
+      auto fftSize = leftChannelFFTProcessor -> getFFTSize();
+      auto binWidth = leftChannelFFTProcessor -> getFFTBinWidth();
+      if(leftChannelFFTProcessor-> getLatestFFTData(fftData))
+      {
+        pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
+      }
+    }
+    /*
+    while there are path producer available, 
+        pull as many as you can 
+              display the most recent one.
+    */
+    while(pathProducer.getNumPathsAvailable() > 0)
+    {
+      pathProducer.getPath(leftChannelFFTPath);
+    }
 }
+
 void ResponseCurveComponent::timerCallback() {
   
   auto fftBounds = getAnalysisArea().toFloat();
@@ -413,11 +424,10 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
   return bounds;
 }
 
-LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication> ledComm) : 
-    processorRef(p), ledComm(ledComm)
+LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication>& comm)
+    : processorRef(p), ledComm(comm)
 {
-    // Start timer for smooth level changes (60fps)
-    startTimerHz(60);
+    startTimerHz(30);
 }
 
 LEDSimulator::~LEDSimulator()

@@ -4,145 +4,14 @@
 #include <juce_dsp/juce_dsp.h>
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <memory>
+#include "CommonDef.h"
+#include "LEDCommunication.h"
+#include "FFTProcessor.h"
 
-// Forward declaration
-class LEDCommunication;
-
-#include <array>
 namespace audio_plugin {
-template <typename T>
-// this is a queue that can be used to store and provide audio buffers.
-struct Fifo
-{
-  void prepare(int numChannels, int numSamples)
-  {
-    static_assert(std::is_same_v<T, juce::AudioBuffer<float>>, "prepare(numChannels, numSamples) should only be used with juce::AudioBuffer<float>");
-    for (auto& buffer : buffers)
-    {
-      buffer.setSize(numChannels,
-                     numSamples,
-                     false,  //clear everything?
-                     true,   //including the extra space? 
-                     true);  //avoid reallocating if you can?
-      buffer.clear();
-    }
-  }
-
-  void prepare(size_t numElements)
-  {
-    static_assert(std::is_same_v<T, std::vector<float>>, "prepare(numElements) should only be used with std::vector<float>");
-
-    for (auto& buffer : buffers)
-    {
-      buffer.clear();
-      buffer.resize(numElements, 0);
-    }
-  }
-
-  bool push(const T& t)
-  {
-    auto write = fifo.write(1);
-    if (write.blockSize1 > 0)
-    {
-      buffers[write.startIndex1] = t;
-      return true;
-    }
-    return false;
-  }
-
-  bool pull(T& t)
-  {
-    auto read = fifo.read(1);
-    if (read.blockSize1 > 0)
-    {
-      t = buffers[read.startIndex1];
-      return true;
-    }
-    return false;
-  }
-  
-  int getNumAvailableForReading() const 
-  {
-    return fifo.getNumReady();
-  }
-  
-  private:
-    static constexpr int Capacity = 30;
-    std::array<T, Capacity> buffers;
-    juce::AbstractFifo fifo {Capacity};
-};
 
 // Define common types before using them
 using BlockType = juce::AudioBuffer<float>;
-
-enum Channel
-{
-  Right, //effectively 0
-  Left //effectively 1
-};  
-
-template <typename Type>
-struct SingleChannelSampleFifo
-{
-  SingleChannelSampleFifo(Channel ch) : channelToUse(ch)
-  {
-    prepared.set(false);
-  }
-
-  void process(const juce::AudioBuffer<Type>& buffer)
-  {
-    jassert(prepared.get());
-    jassert(buffer.getNumChannels() > channelToUse);
-    auto* channelPtr = buffer.getReadPointer(channelToUse);
-
-    for(int i = 0; i < buffer.getNumSamples(); ++i)
-    {
-      pushNextSampleIntoFifo(channelPtr[i]);
-    }
-  }
-  
-  void prepare(int bufferSize)
-  {
-    prepared.set(false);
-    size.set(bufferSize);
-
-    bufferToFill.setSize(1, 
-                         bufferSize,
-                         false, 
-                         true, 
-                         true);
-    audioBufferFifo.prepare(1, bufferSize);
-    fifoIndex = 0;
-    prepared.set(true);
-  }
-  
-  int getNumCompleteBuffersAvailable() const { return audioBufferFifo.getNumAvailableForReading(); }
-  bool isPrepared() const { return prepared.get(); }
-  int getSize() const { return size.get(); }
-  bool getAudioBuffer(juce::AudioBuffer<Type>& buf) { return audioBufferFifo.pull(buf); }
-  
-private:
-  Channel channelToUse;
-  int fifoIndex = 0;
-  Fifo<juce::AudioBuffer<Type>> audioBufferFifo;
-  juce::AudioBuffer<Type> bufferToFill;
-  juce::Atomic<bool> prepared {false};
-  juce::Atomic<int> size = 0;
- 
- 
- //Accumulates samples into the bufferToFill and push it to the fifo when it's full.
-  void pushNextSampleIntoFifo(Type sample) 
-  {
-    if(fifoIndex == bufferToFill.getNumSamples())
-    {
-      auto ok = audioBufferFifo.push(bufferToFill);
-      juce::ignoreUnused(ok);
-      fifoIndex = 0;
-    }
-    bufferToFill.setSample(0, fifoIndex, sample);
-    ++fifoIndex;
-  }  
-};
 
 class AudioPluginAudioProcessor : public juce::AudioProcessor {
 public:
@@ -181,9 +50,17 @@ public:
   juce::AudioProcessorValueTreeState apvts{*this, nullptr, "PARAMETERS",
                                           createParameterLayout()};
 
-  // Use float instead of BlockType as the template parameter
-  SingleChannelSampleFifo<float> leftChannelFifo {Channel::Left};                                        
-  SingleChannelSampleFifo<float> rightChannelFifo {Channel::Right};
+  //Shared instances:
+  SingleChannelSampleFifo<float> leftChannelFifo{Channel::Left};                                        
+  SingleChannelSampleFifo<float> rightChannelFifo{Channel::Right};
+
+  std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
+  std::shared_ptr<FFTProcessor> rightChannelFFTProcessor;
+  
+  std::shared_ptr<LEDCommunication> ledComm;
+  
+  // Add getter for LEDCommunication
+  std::shared_ptr<LEDCommunication> getLEDCommunication() { return ledComm; }
 
   // Audio file loading and playback methods
   bool loadFile(const juce::String& path);
@@ -197,23 +74,14 @@ public:
   void updateLEDs(float leftLevel, float rightLevel);
   bool isPlaying() const { return playing; }
 
-
   // Add channel level tracking
-  juce::Atomic<float> leftChannelLevel { 0.0f };
-  juce::Atomic<float> rightChannelLevel { 0.0f };
+  juce::Atomic<float> leftChannelLevel{0.0f};
+  juce::Atomic<float> rightChannelLevel{0.0f};
   
   // Helper to calculate channel level
   float calculateChannelLevel(const juce::AudioBuffer<float>& buffer, int channel);
 
-  // Getter for LEDCommunication
-  std::shared_ptr<LEDCommunication> getLEDCommunication() const { return ledComm; }
-
 private:
-  //MonoChain for each channel.
-  //MonoChain leftChain, rightChain; 
-
-  std::shared_ptr<LEDCommunication> ledComm;
-
   // Audio file playback members
   juce::AudioFormatManager formatManager;
   std::unique_ptr<juce::AudioFormatReader> formatReader;
@@ -228,8 +96,7 @@ private:
       std::unique_ptr<juce::FileLogger> fileLogger;
   #endif
               
-  // juce::dsp::Oscillator<float> osc;       
-  
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioPluginAudioProcessor)
 };
+
 }  // namespace audio_plugin
