@@ -26,7 +26,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
         // Create or clear the log file
         logFile.deleteFile();
         logFile.create();
-        
+
         // Create a FileLogger and make it the current logger
         fileLogger.reset(new juce::FileLogger(logFile, "SimpleEQ Debug Log"));
         juce::Logger::setCurrentLogger(fileLogger.get());
@@ -111,8 +111,8 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   leftChannelFifo.prepare(samplesPerBlock);
   rightChannelFifo.prepare(samplesPerBlock);
 
-  // leftChannelFFTProcessor->prepare(sampleRate);
-  // rightChannelFFTProcessor->prepare(sampleRate);
+  leftChannelFFTProcessor->prepare(sampleRate);
+  rightChannelFFTProcessor->prepare(sampleRate);
 
   // osc.initialise([](float x) { return std::sin(x); });
   // spec.numChannels = getTotalNumOutputChannels();

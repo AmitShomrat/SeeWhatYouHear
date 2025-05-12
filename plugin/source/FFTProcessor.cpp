@@ -3,24 +3,33 @@ namespace audio_plugin {
 void FFTProcessor::run() {
     while (!threadShouldExit()) {
         process();
-
-        wait(16); //equivalent to 60Hz.
+        // Reduce update rate to 30Hz (33ms) to lower CPU usage
+        wait(16);
     }
 }
 
 void FFTProcessor::process() {
+    if (threadShouldExit()) return;
+    
     juce::AudioBuffer<float> tempIncomingBuffer;
     while (monoChannelFifo->getNumCompleteBuffersAvailable() > 0) {
         if (monoChannelFifo->getAudioBuffer(tempIncomingBuffer)) {
             auto size = tempIncomingBuffer.getNumSamples();
-            //shift buffer to the left.
-            juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, 0),
-                                              monoBuffer.getReadPointer(0, size),
-                                              monoBuffer.getNumSamples() - size);
-            //copy the new incoming buffer to the right.
-            juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, monoBuffer.getNumSamples() - size),
-                                              tempIncomingBuffer.getReadPointer(0, 0),
-                                              size);
+            
+            // Use a more efficient way to update the buffer
+            const float* sourceData = tempIncomingBuffer.getReadPointer(0);
+            float* destData = monoBuffer.getWritePointer(0);
+            
+            // Shift existing samples
+            std::memmove(destData, 
+                        destData + size, 
+                        (monoBuffer.getNumSamples() - size) * sizeof(float));
+            
+            // Copy new samples
+            std::memcpy(destData + (monoBuffer.getNumSamples() - size),
+                       sourceData,
+                       size * sizeof(float));
+                       
             monoChannelFFTDataGenerator.produceFFTDataForRendering(monoBuffer, -48.f);
         }
     }

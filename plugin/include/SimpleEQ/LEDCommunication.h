@@ -5,6 +5,11 @@
 #include <juce_core/juce_core.h>
 #include <juce_events/juce_events.h>
 
+// Forward declare Windows HANDLE type to avoid including windows.h in header
+#ifdef _WIN32
+    typedef void* HANDLE;
+#endif
+
 namespace audio_plugin {  // Add namespace to match Color and RGB definitions
 
 class LEDCommunication : public juce::Thread {
@@ -13,47 +18,44 @@ class LEDCommunication : public juce::Thread {
     ~LEDCommunication();
     void run() override;
     void setColor(Color c) { currentColor.store(c); }
+    
+    // Add connection state query
+    bool isConnected() const { return isPortConnected.load(); }
+    
+    // Add method to change port
+    void setPort(const juce::String& newPort) {
+        portName = newPort;
+        shouldReconnect.store(true);
+    }
 
     void setBrightness(float leftBrightness, float rightBrightness)
     { 
-      currentLeftBrightness.store(static_cast<int>(leftBrightness)); 
-      currentRightBrightness.store(static_cast<int>(rightBrightness));
-    }
-    void prepareData(RGB rgbLeftValues, RGB rgbRightValues)
-    {
-      ledData[0] = static_cast<unsigned char>(0xFF);
-      ledData[1] = static_cast<unsigned char>(currentLeftBrightness.load());
-      ledData[2] = static_cast<unsigned char>(currentRightBrightness.load());
-      //TODO add Right Brightness.
-      const int halfLEDs = numLEDs / 2;
-      for(int i = 0; i < halfLEDs - 1; ++i)
-      {
-        ledData[i * 3 + 3] = static_cast<unsigned char>(rgbLeftValues.r);
-        ledData[i * 3 + 4] = static_cast<unsigned char>(rgbLeftValues.g);
-        ledData[i * 3 + 5] = static_cast<unsigned char>(rgbLeftValues.b);
-
-        ledData[(i + halfLEDs) * 3 + 3] = static_cast<unsigned char>(rgbRightValues.r);
-        ledData[(i + halfLEDs) * 3 + 4] = static_cast<unsigned char>(rgbRightValues.g);
-        ledData[(i + halfLEDs) * 3 + 5] = static_cast<unsigned char>(rgbRightValues.b);
-      }
-
-      // for(int i = ( numLEDs / 2 ); i < numLEDs - 1 ; ++i)
-      // {
-      //   ledData[i * 3 + 2] = static_cast<unsigned char>(rgbRightValues.r);
-      //   ledData[i * 3 + 3] = static_cast<unsigned char>(rgbRightValues.g);
-      //   ledData[i * 3 + 4] = static_cast<unsigned char>(rgbRightValues.b);
-      // }
+      currentLeftBrightness.store(static_cast<int>(leftBrightness * 255)); 
+      currentRightBrightness.store(static_cast<int>(rightBrightness * 255));
     }
 
   private:
+    void prepareData(RGB rgbLeftValues, RGB rgbRightValues);
+    bool tryConnect();
+    
     juce::String portName;
     const int numLEDs = 300;
     std::vector<unsigned char> ledData; 
+    HANDLE hserial;
 
     std::atomic<Color> currentColor{Color::Yellow};
     std::atomic<int> currentLeftBrightness{0};
     std::atomic<int> currentRightBrightness{0};
+    std::atomic<bool> isPortConnected{false};
+    std::atomic<bool> shouldReconnect{false};
 
+    // Track last values to avoid unnecessary updates
+    Color lastColor;
+    int lastLeftBrightness;
+    int lastRightBrightness;
+
+    // Connection retry parameters
+    static constexpr int RETRY_INTERVAL_MS = 5000; // 5 seconds between retries
 };
 
 } // namespace audio_plugin

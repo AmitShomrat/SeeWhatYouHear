@@ -511,8 +511,8 @@ void LEDSimulator::timerCallback()
     float targetBrightness = processorRef.apvts.getRawParameterValue("Brightness")->load();
     // Apply smoothing
     const float smoothingCoeff = 0.9f; //Higher = Fast response, Lower = Slow response.
-    leftLevelSmoothed = leftLevelSmoothed + (smoothingCoeff * (targetLeftLevel - leftLevelSmoothed)) + targetBrightness;
-    rightLevelSmoothed = rightLevelSmoothed + (smoothingCoeff * (targetRightLevel - rightLevelSmoothed)) + targetBrightness;
+    leftLevelSmoothed = leftLevelSmoothed + (smoothingCoeff *( (targetLeftLevel - leftLevelSmoothed) + targetBrightness) );
+    rightLevelSmoothed = rightLevelSmoothed + (smoothingCoeff *( (targetRightLevel - rightLevelSmoothed) + targetBrightness) ) ;
     
     // Update physical LED color and brightness.
     ledComm -> setColor(static_cast<Color>(static_cast<int>(processorRef.apvts.getRawParameterValue("Color")->load())));
