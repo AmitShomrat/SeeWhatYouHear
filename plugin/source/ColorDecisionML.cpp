@@ -3,64 +3,105 @@
 
 namespace audio_plugin {
 
-ColorDecisionML::ColorDecisionML(SingleChannelSampleFifo<float>& fifo)
-    : channelFifo(fifo)
-    , fftProcessor(11)  // 2048 points
+ColorDecisionML::ColorDecisionML(const int fftSize)
 {
     DBG("ColorDecisionML constructor called");
-    previousFFTData.resize(fftProcessor.getFFTSize(), 0.0f);
+    previousFFTData.resize(fftSize, 0.0f);
+    fftData.resize(fftSize, 0.0f);
 }
 
-void ColorDecisionML::process(float sampleRate) {
-    fftProcessor.processNextBuffer(&channelFifo, 
-        [this](const FFTProcessor::FFTData& fftData) {
-            // Extract features and log them
-            Features features = extractFeatures(fftData);
-            DBG(features.toString());
+void ColorDecisionML::process(std::vector<float>& newFftData, const float newSampleRate) {
+    fftData = newFftData;
+    sampleRate = newSampleRate;
+    currentFeatures = extractFeatures(fftData, sampleRate);
+    
+    // Store previous RGB values for smoothing
+    auto prevR = currentRGB[0];
+    auto prevG = currentRGB[1];
+    auto prevB = currentRGB[2];
 
-            // Store current FFT data for next flux calculation
-            previousFFTData = fftData.fftData;
-        },
-        sampleRate
-    );
+    // Get new RGB values from feature mapping
+    RGB newRGB = mapFeaturesToRGB(currentFeatures);
+    
+    // Convert to normalized float values (0-1)
+    float r = newRGB.r / 255.0f;
+    float g = newRGB.g / 255.0f;
+    float b = newRGB.b / 255.0f;
+
+    // Apply temporal smoothing
+    const float smoothingFactor = 0.3f;
+    currentRGB[0] = prevR * (1.0f - smoothingFactor) + r * smoothingFactor;
+    currentRGB[1] = prevG * (1.0f - smoothingFactor) + g * smoothingFactor;
+    currentRGB[2] = prevB * (1.0f - smoothingFactor) + b * smoothingFactor;
+
+    // Store current FFT data for next flux calculation
+    previousFFTData = fftData;
 }
 
-ColorDecisionML::Features ColorDecisionML::extractFeatures(const FFTProcessor::FFTData& fftData) {
-    Features features;
+RGB ColorDecisionML::getCurrentRGB() const {
+    // Convert normalized float RGB (0-1) to integer RGB (0-255)
+    RGB rgb;
+    rgb.r = static_cast<int>(currentRGB[0] * 255.0f);
+    rgb.g = static_cast<int>(currentRGB[1] * 255.0f);
+    rgb.b = static_cast<int>(currentRGB[2] * 255.0f);
     
-    features.lowBandEnergy = calculateBandEnergy(fftData.fftData, 20.0f, 200.0f, fftData.sampleRate);
-    features.midBandEnergy = calculateBandEnergy(fftData.fftData, 200.0f, 2000.0f, fftData.sampleRate);
-    features.highBandEnergy = calculateBandEnergy(fftData.fftData, 2000.0f, 20000.0f, fftData.sampleRate);
-    features.spectralCentroid = calculateSpectralCentroid(fftData.fftData, fftData.sampleRate);
-    features.spectralSpread = calculateSpectralSpread(fftData.fftData, features.spectralCentroid, fftData.sampleRate);
-    features.spectralFlux = calculateSpectralFlux(fftData.fftData, previousFFTData);
+    // Ensure values are within valid range
+    rgb.r = juce::jlimit(0, 255, rgb.r);
+    rgb.g = juce::jlimit(0, 255, rgb.g);
+    rgb.b = juce::jlimit(0, 255, rgb.b);
     
-    return features;
+    return rgb;
 }
 
-float ColorDecisionML::calculateBandEnergy(const std::vector<float>& fftData, 
-                                         float lowFreq, 
-                                         float highFreq,
-                                         float sampleRate) {
-    float energy = 0.0f;
-    int lowBin = static_cast<int>(freqToFFTBin(lowFreq, sampleRate, static_cast<int>(fftData.size())));
-    int highBin = static_cast<int>(freqToFFTBin(highFreq, sampleRate, static_cast<int>(fftData.size())));
+float ColorDecisionML::findPeakFrequency(const std::vector<float>& inputData, float inputSampleRate) {
+    int maxBin = 0;
+    float maxMagnitude = 0.0f;
     
-    for (int bin = lowBin; bin <= highBin && bin < static_cast<int>(fftData.size()/2); ++bin) {
-        energy += fftData[bin] * fftData[bin];
+    // Only look at the meaningful part of the spectrum (up to Nyquist frequency)
+    for (int i = 0; i < inputData.size() / 2; ++i) {
+        if (inputData[i] > maxMagnitude) {
+            maxMagnitude = inputData[i];
+            maxBin = i;
+        }
     }
     
-    return std::sqrt(energy) / (highBin - lowBin + 1);
+    return (maxBin * inputSampleRate) / (inputData.size());
 }
 
-float ColorDecisionML::calculateSpectralCentroid(const std::vector<float>& fftData,
-                                               float sampleRate) {
+float ColorDecisionML::calculateBandEnergy(const std::vector<float>& inputData, 
+                                         float lowFreq, 
+                                         float highFreq,
+                                         float inputSampleRate) {
+    float energy = 0.0f;
+    int lowBin = static_cast<int>(freqToFFTBin(lowFreq, inputSampleRate, static_cast<int>(inputData.size())));
+    int highBin = static_cast<int>(freqToFFTBin(highFreq, inputSampleRate, static_cast<int>(inputData.size())));
+    
+    // Ensure bins are within valid range
+    lowBin = std::max(0, std::min(lowBin, static_cast<int>(inputData.size())));
+    highBin = std::max(0, std::min(highBin, static_cast<int>(inputData.size())));
+    
+    // Calculate energy using linear magnitudes (already squared)
+    for (int bin = lowBin; bin <= highBin && bin < static_cast<int>(inputData.size()); ++bin) {
+        energy += inputData[bin];
+    }
+    
+    // Normalize by number of bins to get average energy in band
+    int numBins = highBin - lowBin + 1;
+    if (numBins > 0) {
+        energy /= numBins;
+    }
+    
+    return energy;
+}
+
+float ColorDecisionML::calculateSpectralCentroid(const std::vector<float>& inputData,
+                                               float inputSampleRate) {
     float numerator = 0.0f;
     float denominator = 0.0f;
     
-    for (size_t bin = 0; bin < fftData.size()/2; ++bin) {
-        float magnitude = fftData[bin];
-        float frequency = bin * sampleRate / fftData.size();
+    for (size_t bin = 0; bin < inputData.size()/2; ++bin) {
+        float magnitude = inputData[bin];
+        float frequency = bin * inputSampleRate / inputData.size();
         numerator += frequency * magnitude;
         denominator += magnitude;
     }
@@ -68,15 +109,15 @@ float ColorDecisionML::calculateSpectralCentroid(const std::vector<float>& fftDa
     return denominator > 0.0f ? numerator / denominator : 0.0f;
 }
 
-float ColorDecisionML::calculateSpectralSpread(const std::vector<float>& fftData, 
+float ColorDecisionML::calculateSpectralSpread(const std::vector<float>& inputData, 
                                              float centroid,
-                                             float sampleRate) {
+                                             float inputSampleRate) {
     float numerator = 0.0f;
     float denominator = 0.0f;
     
-    for (size_t bin = 0; bin < fftData.size()/2; ++bin) {
-        float magnitude = fftData[bin];
-        float frequency = bin * sampleRate / fftData.size();
+    for (size_t bin = 0; bin < inputData.size()/2; ++bin) {
+        float magnitude = inputData[bin];
+        float frequency = bin * inputSampleRate / inputData.size();
         float diff = frequency - centroid;
         numerator += diff * diff * magnitude;
         denominator += magnitude;
@@ -97,7 +138,64 @@ float ColorDecisionML::calculateSpectralFlux(const std::vector<float>& currentFF
     return std::sqrt(flux);
 }
 
-float ColorDecisionML::freqToFFTBin(float freq, float sampleRate, int fftSize) const {
-    return freq * fftSize / sampleRate;
+float ColorDecisionML::freqToFFTBin(float freq, float inputSampleRate, int fftSize) const {
+    return freq * fftSize / inputSampleRate;
 }
+
+ColorDecisionML::Features ColorDecisionML::extractFeatures(std::vector<float>& inputFFTData, const float inputSampleRate) {
+    Features features;
+    
+    features.lowBandEnergy = calculateBandEnergy(inputFFTData, 20.0f, 200.0f, inputSampleRate);
+    features.midBandEnergy = calculateBandEnergy(inputFFTData, 200.0f, 2000.0f, inputSampleRate);
+    features.highBandEnergy = calculateBandEnergy(inputFFTData, 2000.0f, 20000.0f, inputSampleRate);
+    features.spectralCentroid = calculateSpectralCentroid(inputFFTData, inputSampleRate);
+    features.spectralSpread = calculateSpectralSpread(inputFFTData, features.spectralCentroid, inputSampleRate);
+    features.spectralFlux = calculateSpectralFlux(inputFFTData, previousFFTData);
+    
+    return features;
+}
+
+RGB ColorDecisionML::mapFeaturesToRGB(const Features& features) const {
+    RGB rgb{0, 0, 0}; // Initialize with black
+    
+    // Calculate total energy across all bands
+    float totalEnergy = features.lowBandEnergy + features.midBandEnergy + features.highBandEnergy;
+    
+    // Only calculate colors if there's significant energy
+    const float energyThreshold = 0.001f; // Increased threshold for better low-level behavior
+    if (totalEnergy > energyThreshold) {
+        // Normalize band energies relative to total energy
+        float normalizedLow = features.lowBandEnergy / totalEnergy;
+        float normalizedMid = features.midBandEnergy / totalEnergy;
+        float normalizedHigh = features.highBandEnergy / totalEnergy;
+        
+        // Apply non-linear scaling to enhance color response
+        float normalizedFlux = normalizeValue(features.spectralFlux, 0.0f, 1.0f);
+        float normalizedCentroid = normalizeValue(features.spectralCentroid, 20.0f, 20000.0f);
+        float normalizedSpread = normalizeValue(features.spectralSpread, 0.0f, 5000.0f);
+        
+        // Scale the energy relative to the threshold for smoother fade to black
+        float energyScale = juce::jmap(totalEnergy, energyThreshold, energyThreshold * 10.0f, 0.0f, 1.0f);
+        energyScale = juce::jlimit(0.0f, 1.0f, energyScale);
+        
+        // Calculate RGB components with enhanced weighting
+        rgb.r = static_cast<int>(255 * energyScale * (normalizedLow * 0.8f + normalizedFlux * 0.2f));
+        rgb.g = static_cast<int>(255 * energyScale * (normalizedMid * 0.7f + normalizedCentroid * 0.3f));
+        rgb.b = static_cast<int>(255 * energyScale * (normalizedHigh * 0.6f + normalizedSpread * 0.4f));
+        
+        // Ensure values are within valid range
+        rgb.r = juce::jlimit(0, 255, rgb.r);
+        rgb.g = juce::jlimit(0, 255, rgb.g);
+        rgb.b = juce::jlimit(0, 255, rgb.b);
+    }
+    
+    return rgb;
+}
+
+float ColorDecisionML::normalizeValue(float value, float min, float max) const {
+    if (max == min) return 0.0f;
+    float normalized = (value - min) / (max - min);
+    return juce::jlimit(0.0f, 1.0f, normalized);
+}
+
 } // namespace audio_plugin

@@ -368,7 +368,7 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
 }
 
 LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication>& comm)
-    : processorRef(p), ledComm(comm)
+    : processorRef(p), ledComm(comm), leftColorDecisionML(p.leftColorDecisionML), rightColorDecisionML(p.rightColorDecisionML)
 {
     startTimerHz(30);
 }
@@ -402,31 +402,20 @@ void LEDSimulator::paint(juce::Graphics& g)
     auto leftLedArea = bounds.withX(leftLabelArea.getRight()).withWidth(ledWidth);
     auto rightLedArea = bounds.withX(bounds.getRight() - labelWidth - ledWidth).withWidth(ledWidth);
   
-    //this is for tests slider.
-    auto color = static_cast<Color>(static_cast<int>(processorRef.apvts.getRawParameterValue("Color")->load()));
-    juce::Colour ledColor;
-    switch(color) {
-      case Color::Red:
-        ledColor = juce::Colours::red;
-        break;
-      case Color::Blue:
-        ledColor = juce::Colours::blue;
-        break; 
-      case Color::Green:
-        ledColor = juce::Colours::green;
-        break;
-      case Color::Yellow:
-        ledColor = juce::Colours::yellow;
-        break;
-    }
-
-    //this is for tests slider.
+    // Get RGB values from ColorDecisionML
+    RGB leftRGB = leftColorDecisionML.getCurrentRGB();
+    RGB rightRGB = rightColorDecisionML.getCurrentRGB();
+    std::cout << "leftRGB: " << leftRGB.r << " " << leftRGB.g << " " << leftRGB.b << std::endl;
+    std::cout << "rightRGB: " << rightRGB.r << " " << rightRGB.g << " " << rightRGB.b << std::endl;
+    // Create LED colors with proper uint8_t casting
+    juce::Colour leftLedColor = juce::Colour::fromRGB(static_cast<uint8_t>(leftRGB.r), static_cast<uint8_t>(leftRGB.g), static_cast<uint8_t>(leftRGB.b));
+    juce::Colour rightLedColor = juce::Colour::fromRGB(static_cast<uint8_t>(rightRGB.r), static_cast<uint8_t>(rightRGB.g), static_cast<uint8_t>(rightRGB.b));
 
     // Draw LEDs
-    drawLED(g, leftLedArea, leftLevelSmoothed, ledColor);
-    drawLED(g, rightLedArea, rightLevelSmoothed, ledColor);
+    drawLED(g, leftLedArea, leftLevelSmoothed, leftLedColor);
+    drawLED(g, rightLedArea, rightLevelSmoothed, rightLedColor);
     // Update physical LED color
-    ledComm->setColor(ledColor);
+    // ledComm->setColor(color);
 
     // Draw labels
     // Use a simpler font approach

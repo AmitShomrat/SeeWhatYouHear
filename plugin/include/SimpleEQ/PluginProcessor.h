@@ -56,6 +56,9 @@ public:
 
   std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
   std::shared_ptr<FFTProcessor> rightChannelFFTProcessor;
+
+  ColorDecisionML leftColorDecisionML;
+  ColorDecisionML rightColorDecisionML;
   
   std::shared_ptr<LEDCommunication> ledComm;
   
@@ -93,6 +96,7 @@ private:
   double mySampleRate = 44100.0;
   
   juce::dsp::Oscillator<float> osc;  // Add oscillator
+  float freq = 60.0f;  // Default oscillator frequency
   
   #if JUCE_DEBUG
       std::unique_ptr<juce::FileLogger> fileLogger;

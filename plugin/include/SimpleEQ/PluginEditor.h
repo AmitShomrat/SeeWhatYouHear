@@ -3,6 +3,7 @@
 #include "PluginProcessor.h"
 #include "CommonDef.h"
 #include "FFTProcessor.h"
+#include "ColorDecisionML.h"
 #include <memory>
 
 // Forward declaration
@@ -257,7 +258,7 @@ private:
     std::shared_ptr<LEDCommunication> ledComm;
     float leftChannelLevel = {0.0f};
     float rightChannelLevel = {0.0f};
-    
+    ColorDecisionML& leftColorDecisionML, rightColorDecisionML;
     // Smoothing variables
     float leftLevelSmoothed = {0.0f};
     float rightLevelSmoothed = {0.0f};

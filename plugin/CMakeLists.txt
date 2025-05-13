@@ -24,6 +24,7 @@ juce_add_plugin(${PROJECT_NAME}
 # Sets the source files of the plugin project.
 target_sources(${PROJECT_NAME}
     PRIVATE
+        source/ColorDecisionML.cpp
         source/FFTProcessor.cpp
         source/LEDCommunication.cpp
         source/PluginEditor.cpp
@@ -33,6 +34,7 @@ target_sources(${PROJECT_NAME}
         ${INCLUDE_DIR}/LEDCommunication.h
         ${INCLUDE_DIR}/CommonDef.h
         ${INCLUDE_DIR}/FFTProcessor.h
+        ${INCLUDE_DIR}/ColorDecisionML.h
 )
 
 # Sets the include directories of the plugin project.

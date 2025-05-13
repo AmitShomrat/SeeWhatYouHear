@@ -1,5 +1,6 @@
 #pragma once
 #include "CommonDef.h"  // Must come first for Color and RGB definitions
+#include "ColorDecisionML.h"
 #include <atomic>
 #include <vector>
 #include <juce_core/juce_core.h>
@@ -15,7 +16,7 @@ namespace audio_plugin {  // Add namespace to match Color and RGB definitions
 
 class LEDCommunication : public juce::Thread {
   public:
-    LEDCommunication(const juce::String& portName);
+    LEDCommunication(const juce::String& portName, ColorDecisionML& leftColorDecisionML, ColorDecisionML& rightColorDecisionML);
     ~LEDCommunication();
     void run() override;
     void setColor(Color c) { currentColor.store(c); }
@@ -61,8 +62,8 @@ class LEDCommunication : public juce::Thread {
       // Convert to int with rounding
       currentLeftBrightness.store(static_cast<int>(std::round(mappedValueLeft))); 
       currentRightBrightness.store(static_cast<int>(std::round(mappedValueRight)));
-      std::cout << "currentLeftBrightness: " << currentLeftBrightness.load() << std::endl;
-      std::cout << "currentRightBrightness: " << currentRightBrightness.load() << std::endl;
+      // std::cout << "currentLeftBrightness: " << currentLeftBrightness.load() << std::endl;
+      // std::cout << "currentRightBrightness: " << currentRightBrightness.load() << std::endl;
     }
   private:
     void prepareData(RGB rgbLeftValues, RGB rgbRightValues);
@@ -78,6 +79,9 @@ class LEDCommunication : public juce::Thread {
     std::atomic<int> currentRightBrightness{0};
     std::atomic<bool> isPortConnected{false};
     std::atomic<bool> shouldReconnect{false};
+
+    ColorDecisionML& leftColorDecisionML;
+    ColorDecisionML& rightColorDecisionML;
 
     // Connection retry parameters
     static constexpr int RETRY_INTERVAL_MS = 5000; // 5 seconds between retries

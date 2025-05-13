@@ -14,9 +14,11 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
       ),
-      ledComm(std::make_shared<audio_plugin::LEDCommunication>("COM3")),
-      leftChannelFFTProcessor(std::make_shared<FFTProcessor>(leftChannelFifo)),
-      rightChannelFFTProcessor(std::make_shared<FFTProcessor>(rightChannelFifo)) {
+      leftColorDecisionML(1 << order2048),
+      rightColorDecisionML(1 << order2048),
+      ledComm(std::make_shared<audio_plugin::LEDCommunication>("COM3", leftColorDecisionML, rightColorDecisionML)),
+      leftChannelFFTProcessor(std::make_shared<FFTProcessor>(leftChannelFifo, leftColorDecisionML)),
+      rightChannelFFTProcessor(std::make_shared<FFTProcessor>(rightChannelFifo, rightColorDecisionML)) {
     // Setup debug logging
     #if JUCE_DEBUG
         // Create a log file in the user's documents directory
@@ -114,7 +116,7 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   osc.initialise([](float x) { return std::sin(x); }, 128);
   spec.numChannels = getTotalNumOutputChannels();
   osc.prepare(spec);
-  osc.setFrequency(440.0f);  // Set to 440Hz (A4 note)
+  osc.setFrequency(freq);  // Set to 60Hz
 }
 
 void AudioPluginAudioProcessor::releaseResources() {
@@ -148,45 +150,51 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported(
 }
 
 void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-  juce::ignoreUnused(midiMessages);
+    juce::ignoreUnused(midiMessages);
 
-  juce::ScopedNoDenormals noDenormals;
-  auto totalNumInputChannels = getTotalNumInputChannels();
-  auto totalNumOutputChannels = getTotalNumOutputChannels();
+    juce::ScopedNoDenormals noDenormals;
+    auto totalNumInputChannels = getTotalNumInputChannels();
+    auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-  // In case we have more outputs than inputs, we'll clear any output
-  // channels that didn't contain input data, (because these aren't
-  // guaranteed to be empty - they may contain garbage).
-  for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
-    buffer.clear(i, 0, buffer.getNumSamples());
-  }
+    // In case we have more outputs than inputs, we'll clear any output
+    // channels that didn't contain input data, (because these aren't
+    // guaranteed to be empty - they may contain garbage).
+    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
+        buffer.clear(i, 0, buffer.getNumSamples());
+    }
 
   juce::dsp::AudioBlock<float> block(buffer);
   // ======================================Check freqs with osc======================================
-  // buffer.clear();
-  // juce::dsp::ProcessContextReplacing<float> stereoContext(block);
-  // osc.process(stereoContext);
+  buffer.clear();
+  juce::dsp::ProcessContextReplacing<float> stereoContext(block);
+  osc.process(stereoContext);
+  // Update frequency if needed
+  float newFreq = JUCE_LIVE_CONSTANT(60.0f);
+  if (freq != newFreq) {
+      freq = newFreq;
+      osc.setFrequency(freq);
+  }
   // ======================================Check freqs with osc======================================
 
-  // Update the channel levels
-  if (totalNumInputChannels >= 1)
-    leftChannelLevel.set(calculateChannelLevel(buffer, 0));
-  if (totalNumInputChannels >= 2)
-    rightChannelLevel.set(calculateChannelLevel(buffer, 1));
+    // Update the channel levels
+    if (totalNumInputChannels >= 1)
+        leftChannelLevel.set(calculateChannelLevel(buffer, 0));
+    if (totalNumInputChannels >= 2)
+        rightChannelLevel.set(calculateChannelLevel(buffer, 1));
 
-  // updateFilters();
-  if (ledComm) {
-    ledComm->setBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
-  }
+    // updateFilters();
+    if (ledComm) {
+        ledComm->setBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
+    }
 
-  auto leftBlock = block.getSingleChannelBlock(0);
-  auto rightBlock = block.getSingleChannelBlock(1);
+    auto leftBlock = block.getSingleChannelBlock(0);
+    auto rightBlock = block.getSingleChannelBlock(1);
 
-  juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
-  juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+    juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
+    juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
 
-  leftChannelFifo.process(buffer);
-  rightChannelFifo.process(buffer);
+    leftChannelFifo.process(buffer);
+    rightChannelFifo.process(buffer);
 }
 
 void AudioPluginAudioProcessor::updateLEDs(float leftLevel, float rightLevel) {
