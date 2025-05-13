@@ -1,0 +1,1 @@
+cmake --build .\AudioFilePlayer\build\ --target run_with_plugin

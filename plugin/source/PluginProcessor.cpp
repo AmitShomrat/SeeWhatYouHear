@@ -103,10 +103,6 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   spec.maximumBlockSize = samplesPerBlock;
   spec.numChannels = 1;
   spec.sampleRate = sampleRate;
-  // leftChain.prepare(spec);
-  // rightChain.prepare(spec);
-
-  // updateFilters();
 
   leftChannelFifo.prepare(samplesPerBlock);
   rightChannelFifo.prepare(samplesPerBlock);
@@ -114,10 +110,11 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   leftChannelFFTProcessor->prepare(sampleRate);
   rightChannelFFTProcessor->prepare(sampleRate);
 
-  // osc.initialise([](float x) { return std::sin(x); });
-  // spec.numChannels = getTotalNumOutputChannels();
-  // osc.prepare(spec);
-  // osc.setFrequency(1000);
+  // Initialize oscillator with 0.5 amplitude (multiply sin(x) by 0.5)
+  osc.initialise([](float x) { return std::sin(x); }, 128);
+  spec.numChannels = getTotalNumOutputChannels();
+  osc.prepare(spec);
+  osc.setFrequency(440.0f);  // Set to 440Hz (A4 note)
 }
 
 void AudioPluginAudioProcessor::releaseResources() {
@@ -160,12 +157,16 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
   // In case we have more outputs than inputs, we'll clear any output
   // channels that didn't contain input data, (because these aren't
   // guaranteed to be empty - they may contain garbage).
-  // This is here to avoid people getting screaming feedback
-  // when they first compile a plugin, but obviously you don't need to keep
-  // this code if your algorithm always overwrites all the output channels.
   for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
     buffer.clear(i, 0, buffer.getNumSamples());
   }
+
+  juce::dsp::AudioBlock<float> block(buffer);
+  // ======================================Check freqs with osc======================================
+  // buffer.clear();
+  // juce::dsp::ProcessContextReplacing<float> stereoContext(block);
+  // osc.process(stereoContext);
+  // ======================================Check freqs with osc======================================
 
   // Update the channel levels
   if (totalNumInputChannels >= 1)
@@ -174,16 +175,9 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     rightChannelLevel.set(calculateChannelLevel(buffer, 1));
 
   // updateFilters();
-  updateLEDs(leftChannelLevel.get(), rightChannelLevel.get());
-
-  juce::dsp::AudioBlock<float> block(buffer);
-  
-  //======================================Check freqs with osc======================================
-  // buffer.clear();
-
-  // juce::dsp::ProcessContextReplacing<float> StereoContext(block);
-  // osc.process(StereoContext);
-  //======================================Check freqs with osc======================================
+  if (ledComm) {
+    ledComm->setBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
+  }
 
   auto leftBlock = block.getSingleChannelBlock(0);
   auto rightBlock = block.getSingleChannelBlock(1);
@@ -191,16 +185,13 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
   juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
   juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
 
-  // leftChain.process(leftContext);
-  // rightChain.process(rightContext);
-
   leftChannelFifo.process(buffer);
   rightChannelFifo.process(buffer);
 }
 
 void AudioPluginAudioProcessor::updateLEDs(float leftLevel, float rightLevel) {
     if (ledComm) {
-        ledComm->setBrightness(leftLevel, rightLevel);
+        ledComm->setBrightness(leftLevel, rightLevel, apvts.getRawParameterValue("Brightness")->load());
     }
 }
 
@@ -240,7 +231,7 @@ AudioPluginAudioProcessor::createParameterLayout() {
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
       "Brightness", "Brightness", juce::NormalisableRange<float>
-      (0.f, 0.3f, 0.01f), 0.f));
+      (0.f, 0.135f, 0.019f, 0.5f), 0.135f));
 
   juce::Array<juce::String> stringArray = {"red", "blue", "green", "yellow"};
   layout.add(std::make_unique<juce::AudioParameterChoice>(
@@ -256,20 +247,29 @@ float AudioPluginAudioProcessor::calculateChannelLevel(const juce::AudioBuffer<f
         
     auto* channelData = buffer.getReadPointer(channel);
     float sum = 0.0f;
+    float peakLevel = 0.0f;
     
-    // Calculate RMS (Root Mean Square) level
+    // Calculate both RMS and peak levels
     for (int i = 0; i < buffer.getNumSamples(); ++i)
     {
-        float sample = channelData[i];
+        float sample = std::abs(channelData[i]);
         sum += sample * sample;
+        peakLevel = std::max(peakLevel, sample);
     }
     
     float rms = std::sqrt(sum / buffer.getNumSamples());
     
-    // Convert to decibels and normalize to 0.0-1.0 range for visualization
-    // -60dB to 0dB mapped to 0.0 to 1.0
-    float db = juce::Decibels::gainToDecibels(rms, -60.0f);
-    return juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 60.0f);
+    // For a sine wave at 0dB (peak = 1.0), RMS is approximately 0.707 (1/√2)
+    // We'll normalize RMS relative to this value
+    float normalizedRMS = rms / 0.707f;
+    
+    // Use the maximum of normalized RMS and peak for the final level
+    float level = std::max(normalizedRMS, peakLevel);
+    
+
+    // Ensure we don't exceed 1.0
+    // std::cout << "level: " << juce::jlimit(0.0f, 1.0f, level) << std::endl;
+    return juce::jlimit(0.0f, 1.0f, level);
 }
 
 }  // namespace audio_plugin

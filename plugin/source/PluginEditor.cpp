@@ -154,20 +154,10 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
 //============================================================================================================================
 //This Component is a listener and Timer object.
 ResponseCurveComponent::ResponseCurveComponent(AudioPluginAudioProcessor& p)
-: processorRef(p), 
-/*Before refactoring: 
-leftPathProducer(processorRef.leftChannelFifo), 
-rightPathProducer(processorRef.rightChannelFifo)
-*/
+: processorRef(p),
 leftPathProducer(processorRef.leftChannelFFTProcessor),
 rightPathProducer(processorRef.rightChannelFFTProcessor)
 {  
-
-  // const auto& params = processorRef.getParameters();
-  // for(auto param : params) {
-  //   param -> addListener(this); //To observe the changes in the parameters.
-  // }
-  // updateChain();  
   startTimerHz(60); //timerCallback function is called 60 times per second.
 }
 //This function is called when the parameter value changes.
@@ -176,57 +166,10 @@ void ResponseCurveComponent::parameterValueChanged (int parameterIndex, float ne
   parametersChanged.set(true);
 }
 
-ResponseCurveComponent::~ResponseCurveComponent() {
-  // const auto& params = processorRef.getParameters();
-  // for(auto param : params) {
-  //   param -> removeListener(this);
-  // }
-}
+ResponseCurveComponent::~ResponseCurveComponent() {}
 void PathProducer::process(juce::Rectangle<float> fftBounds, double sampleRate) 
 {
     juce::ignoreUnused(fftBounds, sampleRate);  // Add this line to fix the warning
-    /*Before refactoring:
-    juce::AudioBuffer<float> tempIncomingBuffer;
-    //As long as there are complete and available buffers from the SCSF, process them.
-    while(leftChannelFifo->getNumCompleteBuffersAvailable() > 0)
-    {
-      //If there is a complete buffer available, get it.
-      if(leftChannelFifo->getAudioBuffer(tempIncomingBuffer))
-      {
-        auto size = tempIncomingBuffer.getNumSamples();
-        //Shift the buffer to the left.
-        juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, 0), 
-                                          monoBuffer.getReadPointer(0, size), 
-                                          monoBuffer.getNumSamples() - size);
-
-        //Copy the new samples to the end of the buffer.
-        juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, monoBuffer.getNumSamples() - size),
-                                          tempIncomingBuffer.getReadPointer(0, 0), 
-                                          size);
-
-        leftChannelFFTDataGenerator.produceFFTDataForRendering(monoBuffer, -48.f);
-      }
-    }
-
-        // if there are FFT data buffer to pull.
-        // if we can pull a buffer, generate a path.
-    const auto fftSize = leftChannelFFTDataGenerator.getFFTSize();
-
-    // 48000 / 2048 = 23Hz <- this is the bin width.
-
-    const auto binWidth = sampleRate / static_cast<double>(fftSize);
-
-    */
-    /*Before refactoring:
-    while(leftChannelFFTProcessor.getNumAvailableFFTDataBlocks() > 0)//Consuming FFTData blocks in order to generate a path.
-    {
-      std::vector<float> fftData;
-      if(leftPathProducer.getFFTData(fftData))
-      {
-        pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
-      }
-    }
-    */
     while(leftChannelFFTProcessor-> isAvailable())//Consuming FFTData blocks in order to generate a path.
     {
       std::vector<float> fftData;
@@ -479,12 +422,12 @@ void LEDSimulator::paint(juce::Graphics& g)
 
     //this is for tests slider.
 
-
-
     // Draw LEDs
     drawLED(g, leftLedArea, leftLevelSmoothed, ledColor);
     drawLED(g, rightLedArea, rightLevelSmoothed, ledColor);
-    
+    // Update physical LED color
+    ledComm->setColor(ledColor);
+
     // Draw labels
     // Use a simpler font approach
 
@@ -506,22 +449,27 @@ void LEDSimulator::resized()
 void LEDSimulator::timerCallback()
 {
     // Get channel levels
-    float targetLeftLevel = processorRef.leftChannelLevel.get();// We want to refactor the calcutions of leve in order to maintain level parts for each module (ledComm , GUI ).
+    float targetLeftLevel = processorRef.leftChannelLevel.get();
     float targetRightLevel = processorRef.rightChannelLevel.get();
     float targetBrightness = processorRef.apvts.getRawParameterValue("Brightness")->load();
-    // Apply smoothing
+    
+    // Apply smoothing to levels
     const float smoothingCoeff = 0.9f; //Higher = Fast response, Lower = Slow response.
-    leftLevelSmoothed = leftLevelSmoothed + (smoothingCoeff *( (targetLeftLevel - leftLevelSmoothed) + targetBrightness) );
-    rightLevelSmoothed = rightLevelSmoothed + (smoothingCoeff *( (targetRightLevel - rightLevelSmoothed) + targetBrightness) ) ;
+    leftLevelSmoothed = leftLevelSmoothed + smoothingCoeff * (targetLeftLevel - leftLevelSmoothed);
+    rightLevelSmoothed = rightLevelSmoothed + smoothingCoeff * (targetRightLevel - rightLevelSmoothed);
     
-    // Update physical LED color and brightness.
-    ledComm -> setColor(static_cast<Color>(static_cast<int>(processorRef.apvts.getRawParameterValue("Color")->load())));
+    // Only bypass step 0
+    float brightnessScale = 0.0f;
+    if (targetBrightness >= 0.019f) {  // Start from step 1
+        // Rescale to ensure step 1 is visible
+        brightnessScale = juce::jmap(targetBrightness, 
+                                   0.019f, 0.135f,  // Input range: from step 1 to max
+                                   0.2f, 1.0f);     // Output range: start at 20% brightness
+    }
     
-    //TODO: Optimize the scaled level to the brightness 
-
-    //=========================================
-
-
+    // Apply brightness scaling to smoothed levels
+    leftLevelSmoothed *= brightnessScale;
+    rightLevelSmoothed *= brightnessScale;
     
     // Only repaint if levels changed significantly
     if (std::abs(leftLevelSmoothed - leftChannelLevel) > 0.01f || 
@@ -630,10 +578,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
   setSize(600,400);
 }
 
-AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() 
-{
-
-}
+AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {}
 
 void AudioPluginAudioProcessorEditor::paint(juce::Graphics& g) {
   using namespace juce;

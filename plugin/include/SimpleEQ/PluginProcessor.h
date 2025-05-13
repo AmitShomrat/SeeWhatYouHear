@@ -92,6 +92,8 @@ private:
   bool looping = false;
   double mySampleRate = 44100.0;
   
+  juce::dsp::Oscillator<float> osc;  // Add oscillator
+  
   #if JUCE_DEBUG
       std::unique_ptr<juce::FileLogger> fileLogger;
   #endif

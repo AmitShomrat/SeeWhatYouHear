@@ -9,9 +9,6 @@
 
 namespace audio_plugin {
 
-template<typename T>
-class SingleChannelSampleFifo;
-
 class ColorDecisionML {
 public:
     ColorDecisionML(SingleChannelSampleFifo<float>& fifo);

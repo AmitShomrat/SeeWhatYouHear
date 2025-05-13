@@ -5,9 +5,6 @@ namespace audio_plugin {
 
 LEDCommunication::LEDCommunication(const juce::String& portName) 
     : juce::Thread("LEDCommunicationThread"), portName(portName),
-      lastColor(Color::Red),
-      lastLeftBrightness(-1),
-      lastRightBrightness(-1),
       hserial(INVALID_HANDLE_VALUE)
 {   
     ledData.resize(numLEDs * 3 + 1 + 2);
@@ -119,33 +116,20 @@ void LEDCommunication::run()
             wait(100);
             continue;
         }
-
-        Color color = currentColor.load();
-        int leftBrightness = currentLeftBrightness.load();
-        int rightBrightness = currentRightBrightness.load();
-        
-        // Only update if there's a change in color or brightness
-        if (color != lastColor || 
-            leftBrightness != lastLeftBrightness || 
-            rightBrightness != lastRightBrightness) {
-            
-            DBG("Updating LEDs - Color: " + juce::String(static_cast<int>(color)) + 
-                " Left: " + juce::String(leftBrightness) + 
-                " Right: " + juce::String(rightBrightness));
-            
-            switch(color) {
-                case Color::Red:
-                    prepareData(RGB{255, 0, 0}, RGB{255, 0, 0});        
-                    break;
-                case Color::Blue:
-                    prepareData(RGB{0, 0, 255}, RGB{0, 0, 255});        
-                    break;
-                case Color::Green:
-                    prepareData(RGB{0, 255, 0}, RGB{0, 255, 0});        
-                    break;
-                case Color::Yellow:
-                    prepareData(RGB{255, 255, 0}, RGB{255, 255, 0});        
-                    break;
+        Color color = currentColor.load();            
+        switch(color) {
+            case Color::Red:
+                prepareData(RGB{255, 0, 0}, RGB{255, 0, 0});        
+                break;
+            case Color::Blue:
+                prepareData(RGB{0, 0, 255}, RGB{0, 0, 255});        
+                break;
+            case Color::Green:
+                prepareData(RGB{0, 255, 0}, RGB{0, 255, 0});        
+                break;
+            case Color::Yellow:
+                prepareData(RGB{255, 255, 0}, RGB{255, 255, 0});        
+                break;
             }
             
             DWORD bytesWritten;
@@ -159,11 +143,9 @@ void LEDCommunication::run()
             DBG("Successfully wrote " + juce::String(bytesWritten) + " bytes to LED port");
             
             // Update last values only on successful write
-            lastColor = color;
-            lastLeftBrightness = leftBrightness;
-            lastRightBrightness = rightBrightness;
-        }
-        
+            // lastColor = color;
+            // lastLeftBrightness = leftBrightness;
+            // lastRightBrightness = rightBrightness;
         wait(16);
     }
     
