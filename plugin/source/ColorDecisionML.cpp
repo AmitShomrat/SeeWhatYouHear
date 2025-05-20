@@ -15,11 +15,6 @@ void ColorDecisionML::process(std::vector<float>& newFftData, const float newSam
     sampleRate = newSampleRate;
     currentFeatures = extractFeatures(fftData, sampleRate);
     
-    // Store previous RGB values for smoothing
-    auto prevR = currentRGB[0];
-    auto prevG = currentRGB[1];
-    auto prevB = currentRGB[2];
-
     // Get new RGB values from feature mapping
     RGB newRGB = mapFeaturesToRGB(currentFeatures);
     
@@ -28,22 +23,31 @@ void ColorDecisionML::process(std::vector<float>& newFftData, const float newSam
     float g = newRGB.g / 255.0f;
     float b = newRGB.b / 255.0f;
 
+    // Get current RGB values using atomic load
+    auto prevRGB = currentRGB.load();
+
     // Apply temporal smoothing
     const float smoothingFactor = 0.3f;
-    currentRGB[0] = prevR * (1.0f - smoothingFactor) + r * smoothingFactor;
-    currentRGB[1] = prevG * (1.0f - smoothingFactor) + g * smoothingFactor;
-    currentRGB[2] = prevB * (1.0f - smoothingFactor) + b * smoothingFactor;
+    float smoothedR = prevRGB[0] * (1.0f - smoothingFactor) + r * smoothingFactor;
+    float smoothedG = prevRGB[1] * (1.0f - smoothingFactor) + g * smoothingFactor;
+    float smoothedB = prevRGB[2] * (1.0f - smoothingFactor) + b * smoothingFactor;
+
+    // Update RGB values using atomic store
+    setRGB(smoothedR, smoothedG, smoothedB);
 
     // Store current FFT data for next flux calculation
     previousFFTData = fftData;
 }
 
 RGB ColorDecisionML::getCurrentRGB() const {
+    // Get current RGB values using atomic load
+    auto rgbValues = currentRGB.load();
+    
     // Convert normalized float RGB (0-1) to integer RGB (0-255)
     RGB rgb;
-    rgb.r = static_cast<int>(currentRGB[0] * 255.0f);
-    rgb.g = static_cast<int>(currentRGB[1] * 255.0f);
-    rgb.b = static_cast<int>(currentRGB[2] * 255.0f);
+    rgb.r = static_cast<int>(rgbValues[0] * 255.0f);
+    rgb.g = static_cast<int>(rgbValues[1] * 255.0f);
+    rgb.b = static_cast<int>(rgbValues[2] * 255.0f);
     
     // Ensure values are within valid range
     rgb.r = juce::jlimit(0, 255, rgb.r);
@@ -85,11 +89,11 @@ float ColorDecisionML::calculateBandEnergy(const std::vector<float>& inputData,
         energy += inputData[bin];
     }
     
-    // Normalize by number of bins to get average energy in band
-    int numBins = highBin - lowBin + 1;
-    if (numBins > 0) {
-        energy /= numBins;
-    }
+    // Normalize by number of bins to get average energy in band (Low range has less bins then it leads to higher energy in low range)
+    // int numBins = highBin - lowBin + 1;
+    // if (numBins > 0) {
+    //     energy /= numBins;
+    // }
     
     return energy;
 }
@@ -147,11 +151,11 @@ ColorDecisionML::Features ColorDecisionML::extractFeatures(std::vector<float>& i
     
     features.lowBandEnergy = calculateBandEnergy(inputFFTData, 20.0f, 200.0f, inputSampleRate);
     features.midBandEnergy = calculateBandEnergy(inputFFTData, 200.0f, 2000.0f, inputSampleRate);
-    features.highBandEnergy = calculateBandEnergy(inputFFTData, 2000.0f, 20000.0f, inputSampleRate);
+    features.highBandEnergy = calculateBandEnergy(inputFFTData, 2000.0f, 10000.0f, inputSampleRate);
     features.spectralCentroid = calculateSpectralCentroid(inputFFTData, inputSampleRate);
     features.spectralSpread = calculateSpectralSpread(inputFFTData, features.spectralCentroid, inputSampleRate);
     features.spectralFlux = calculateSpectralFlux(inputFFTData, previousFFTData);
-    
+    // std::cout << "features: " << features.lowBandEnergy << " " << features.midBandEnergy << " " << features.highBandEnergy << std::endl;
     return features;
 }
 
@@ -179,9 +183,9 @@ RGB ColorDecisionML::mapFeaturesToRGB(const Features& features) const {
         energyScale = juce::jlimit(0.0f, 1.0f, energyScale);
         
         // Calculate RGB components with enhanced weighting
-        rgb.r = static_cast<int>(255 * energyScale * (normalizedLow * 0.8f + normalizedFlux * 0.2f));
-        rgb.g = static_cast<int>(255 * energyScale * (normalizedMid * 0.7f + normalizedCentroid * 0.3f));
-        rgb.b = static_cast<int>(255 * energyScale * (normalizedHigh * 0.6f + normalizedSpread * 0.4f));
+        rgb.r = static_cast<int>(255 * energyScale * (normalizedLow + normalizedFlux));
+        rgb.g = static_cast<int>(255 * energyScale * (normalizedMid * 0.5f + normalizedCentroid));
+        rgb.b = static_cast<int>(255 * energyScale * (normalizedHigh * 0.5f + normalizedSpread));
         
         // Ensure values are within valid range
         rgb.r = juce::jlimit(0, 255, rgb.r);

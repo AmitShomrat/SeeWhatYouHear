@@ -370,7 +370,7 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
 LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication>& comm)
     : processorRef(p), ledComm(comm), leftColorDecisionML(p.leftColorDecisionML), rightColorDecisionML(p.rightColorDecisionML)
 {
-    startTimerHz(30);
+    startTimerHz(60);
 }
 
 LEDSimulator::~LEDSimulator()
@@ -403,14 +403,15 @@ void LEDSimulator::paint(juce::Graphics& g)
     auto rightLedArea = bounds.withX(bounds.getRight() - labelWidth - ledWidth).withWidth(ledWidth);
   
     // Get RGB values from ColorDecisionML
-    RGB leftRGB = leftColorDecisionML.getCurrentRGB();
-    RGB rightRGB = rightColorDecisionML.getCurrentRGB();
-    std::cout << "leftRGB: " << leftRGB.r << " " << leftRGB.g << " " << leftRGB.b << std::endl;
-    std::cout << "rightRGB: " << rightRGB.r << " " << rightRGB.g << " " << rightRGB.b << std::endl;
+    // RGB leftRGB = leftColorDecisionML.getCurrentRGB();
+    // RGB rightRGB = rightColorDecisionML.getCurrentRGB();
+    
     // Create LED colors with proper uint8_t casting
-    juce::Colour leftLedColor = juce::Colour::fromRGB(static_cast<uint8_t>(leftRGB.r), static_cast<uint8_t>(leftRGB.g), static_cast<uint8_t>(leftRGB.b));
-    juce::Colour rightLedColor = juce::Colour::fromRGB(static_cast<uint8_t>(rightRGB.r), static_cast<uint8_t>(rightRGB.g), static_cast<uint8_t>(rightRGB.b));
+    juce::Colour leftLedColor = juce::Colour::fromRGB(static_cast<uint8_t>(currentLeftRGB.r), static_cast<uint8_t>(currentLeftRGB.g), static_cast<uint8_t>(currentLeftRGB.b));
+    juce::Colour rightLedColor = juce::Colour::fromRGB(static_cast<uint8_t>(currentRightRGB.r), static_cast<uint8_t>(currentRightRGB.g), static_cast<uint8_t>(currentRightRGB.b));
 
+    // std::cout << "leftRGB: " << static_cast<int>(leftLedColor.getRed()) << " " << static_cast<int>(leftLedColor.getGreen()) << " " << static_cast<int>(leftLedColor.getBlue()) << std::endl;
+    // std::cout << "rightRGB: " << static_cast<int>(rightLedColor.getRed()) << " " << static_cast<int>(rightLedColor.getGreen()) << " " << static_cast<int>(rightLedColor.getBlue()) << std::endl;
     // Draw LEDs
     drawLED(g, leftLedArea, leftLevelSmoothed, leftLedColor);
     drawLED(g, rightLedArea, rightLevelSmoothed, rightLedColor);
@@ -460,12 +461,30 @@ void LEDSimulator::timerCallback()
     leftLevelSmoothed *= brightnessScale;
     rightLevelSmoothed *= brightnessScale;
     
-    // Only repaint if levels changed significantly
+    // Get current RGB values
+    RGB leftRGB = leftColorDecisionML.getCurrentRGB();
+    RGB rightRGB = rightColorDecisionML.getCurrentRGB();
+    
+    // Check for any changes in brightness or color
+    bool needsRepaint = false;
+    
+    // Check brightness changes
     if (std::abs(leftLevelSmoothed - leftChannelLevel) > 0.01f || 
-        std::abs(rightLevelSmoothed - rightChannelLevel) > 0.01f)
-    {
+        std::abs(rightLevelSmoothed - rightChannelLevel) > 0.01f) {
+        needsRepaint = true;
+    }
+    
+    // Check color changes
+    if (currentLeftRGB != leftRGB || currentRightRGB != rightRGB) {
+        needsRepaint = true;
+    }
+    
+    // Update values and repaint if needed
+    if (needsRepaint) {
         leftChannelLevel = leftLevelSmoothed;
         rightChannelLevel = rightLevelSmoothed;
+        currentLeftRGB = leftRGB;
+        currentRightRGB = rightRGB;
         repaint();
     }
 }
@@ -484,7 +503,7 @@ void LEDSimulator::drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, flo
 {
     // Scale brightness with more aggressive non-linear curve for better dynamic range
     // This will keep low levels very dark and make high levels pop
-    float scaledBrightness = std::pow(brightness, 1.5f); // Less aggressive curve (0.5 instead of 0.7)
+    float scaledBrightness = std::pow(brightness, 0.5f); // Less aggressive curve (0.5 instead of 0.7)
     
     auto center = bounds.getCentre();
     

@@ -35,6 +35,9 @@ class LEDCommunication : public juce::Thread {
       // Use decibels scaling with expanded range (-60dB to 0dB)
       float leftScaled = juce::Decibels::decibelsToGain(leftBrightness * 60.0f - 60.0f);
       float rightScaled = juce::Decibels::decibelsToGain(rightBrightness * 60.0f - 60.0f);
+      // auto skew = JUCE_LIVE_CONSTANT(0.6f);
+      leftScaled = std::pow(leftScaled, 0.6f);
+      rightScaled = std::pow(rightScaled, 0.6f);
 
       // Apply user brightness with non-linear scaling to maintain sensitivity at lower values
       // Normalize userBrightness to 0-1 range considering the max value of 0.135f

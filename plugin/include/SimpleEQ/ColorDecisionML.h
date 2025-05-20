@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include <array>
+#include <atomic>
 
 namespace audio_plugin {
 
@@ -22,7 +23,17 @@ public:
 
     void setFFTData(const std::vector<float>& newData) { fftData = newData; }
     void setSampleRate(float newSampleRate) { sampleRate = newSampleRate; }
-    std::array<float, 3> getRawRGB() const { return currentRGB; }
+    
+    // Thread-safe setters for RGB values
+    void setRGB(float r, float g, float b) {
+        std::array<float, 3> newRGB{r, g, b};
+        currentRGB.store(newRGB);
+    }
+    
+    // Thread-safe getters for raw RGB values
+    std::array<float, 3> getRawRGB() const {
+        return currentRGB.load();
+    }
 
 private:
     struct Features {
@@ -63,7 +74,9 @@ private:
     Features currentFeatures;  // Store the current features
     std::vector<float> fftData;
     float sampleRate{44100.0f};
-    std::array<float, 3> currentRGB{0.0f, 0.0f, 0.0f};
+    
+    // Use atomic array for thread-safe RGB values
+    std::atomic<std::array<float, 3>> currentRGB{std::array<float, 3>{0.0f, 0.0f, 0.0f}};
 
     RGB mapFeaturesToRGB(const Features& features) const;
 };

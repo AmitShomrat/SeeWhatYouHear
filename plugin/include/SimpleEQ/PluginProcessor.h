@@ -95,7 +95,8 @@ private:
   bool looping = false;
   double mySampleRate = 44100.0;
   
-  juce::dsp::Oscillator<float> osc;  // Add oscillator
+  juce::dsp::Oscillator<float> leftOsc;  // Renamed from osc to leftOsc
+  juce::dsp::Oscillator<float> rightOsc; // Added right channel oscillator
   float freq = 60.0f;  // Default oscillator frequency
   
   #if JUCE_DEBUG

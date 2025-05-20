@@ -258,7 +258,10 @@ private:
     std::shared_ptr<LEDCommunication> ledComm;
     float leftChannelLevel = {0.0f};
     float rightChannelLevel = {0.0f};
-    ColorDecisionML& leftColorDecisionML, rightColorDecisionML;
+    ColorDecisionML& leftColorDecisionML;
+    ColorDecisionML& rightColorDecisionML;
+    RGB currentLeftRGB{/*RGB{0, 0, 0}*/};
+    RGB currentRightRGB{/*RGB{0, 0, 0}*/};
     // Smoothing variables
     float leftLevelSmoothed = {0.0f};
     float rightLevelSmoothed = {0.0f};

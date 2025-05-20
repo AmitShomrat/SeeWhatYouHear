@@ -15,6 +15,14 @@ struct RGB {
   int r {0};
   int g {0};
   int b {0};
+
+  bool operator==(const RGB& other) const {
+    return r == other.r && g == other.g && b == other.b;
+  }
+
+  bool operator!=(const RGB& other) const {
+    return !(*this == other);
+  }
 };
 
 template <typename T>

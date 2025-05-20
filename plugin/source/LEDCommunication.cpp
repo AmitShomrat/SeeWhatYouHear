@@ -31,17 +31,19 @@ void LEDCommunication::prepareData(RGB rgbLeftValues, RGB rgbRightValues)
     float rightScale = static_cast<float>(currentRightBrightness.load()) / 255.0f;
     
     RGB scaledRGBLeft{
-        static_cast<uint8_t>(rgbLeftValues.r * leftScale),
-        static_cast<uint8_t>(rgbLeftValues.g * leftScale),
-        static_cast<uint8_t>(rgbLeftValues.b * leftScale)
+        static_cast<uint8_t>(rgbLeftValues.r * (leftScale)),
+        static_cast<uint8_t>(rgbLeftValues.g * (leftScale)),
+        static_cast<uint8_t>(rgbLeftValues.b * (leftScale))
     };
-    // std::cout << "scaledRGBLeft: " << scaledRGBLeft.r << " " << scaledRGBLeft.g << " " << scaledRGBLeft.b << std::endl;
+    std::cout << "scaledRGBLeft: " << static_cast<int> (scaledRGBLeft.r) << " " << static_cast<int> (scaledRGBLeft.g) << " " << static_cast<int> (scaledRGBLeft.b) << std::endl;
+    std::cout << "leftScale: " << leftScale << std::endl;
     RGB scaledRGBRight{
-        static_cast<uint8_t>(rgbRightValues.r * rightScale),
-        static_cast<uint8_t>(rgbRightValues.g * rightScale),
-        static_cast<uint8_t>(rgbRightValues.b * rightScale)
+        static_cast<uint8_t>(rgbRightValues.r * (rightScale)),
+        static_cast<uint8_t>(rgbRightValues.g * (rightScale)),
+        static_cast<uint8_t>(rgbRightValues.b * (rightScale))
     };
-
+    std::cout << "scaledRGBRight: " << static_cast<int> (scaledRGBRight.r) << " " << static_cast<int> (scaledRGBRight.g) << " " << static_cast<int> (scaledRGBRight.b) << std::endl;
+    std::cout << "rightScale: " << rightScale << std::endl;
     ledData[0] = static_cast<unsigned char>(0xFF);
     ledData[1] = static_cast<unsigned char>(currentLeftBrightness.load());
     ledData[2] = static_cast<unsigned char>(currentRightBrightness.load());
@@ -133,6 +135,8 @@ void LEDCommunication::run()
 
         RGB rgbLeft = leftColorDecisionML.getCurrentRGB();
         RGB rgbRight = rightColorDecisionML.getCurrentRGB();
+        // std::cout << "rgbLeft: " << static_cast<int> (rgbLeft.r) << " " << static_cast<int> (rgbLeft.g) << " " << static_cast<int> (rgbLeft.b) << std::endl;
+        // std::cout << "rgbRight: " << static_cast<int> (rgbRight.r) << " " << static_cast<int> (rgbRight.g) << " " << static_cast<int> (rgbRight.b) << std::endl;
         prepareData(rgbLeft, rgbRight);
         
         DWORD bytesWritten;

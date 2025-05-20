@@ -112,11 +112,16 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   leftChannelFFTProcessor->prepare(sampleRate);
   rightChannelFFTProcessor->prepare(sampleRate);
 
-  // Initialize oscillator with 0.5 amplitude (multiply sin(x) by 0.5)
-  osc.initialise([](float x) { return std::sin(x); }, 128);
-  spec.numChannels = getTotalNumOutputChannels();
-  osc.prepare(spec);
-  osc.setFrequency(freq);  // Set to 60Hz
+  // Initialize oscillators with 0.5 amplitude (multiply sin(x) by 0.5)
+  leftOsc.initialise([](float x) { return std::sin(x) * 0.7f; }, 128);
+  rightOsc.initialise([](float x) { return std::sin(x) * 0.7f; }, 128);
+  
+  spec.numChannels = 1; // Set to 1 for mono processing
+  leftOsc.prepare(spec);
+  rightOsc.prepare(spec);
+  
+  leftOsc.setFrequency(freq);  // Set left to base frequency
+  rightOsc.setFrequency(freq);  // Set right slightly higher for stereo width
 }
 
 void AudioPluginAudioProcessor::releaseResources() {
@@ -157,24 +162,33 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
     // In case we have more outputs than inputs, we'll clear any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
+    // channels that didn't contain input data
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
         buffer.clear(i, 0, buffer.getNumSamples());
     }
 
-  juce::dsp::AudioBlock<float> block(buffer);
-  // ======================================Check freqs with osc======================================
-  buffer.clear();
-  juce::dsp::ProcessContextReplacing<float> stereoContext(block);
-  osc.process(stereoContext);
-  // Update frequency if needed
-  float newFreq = JUCE_LIVE_CONSTANT(60.0f);
-  if (freq != newFreq) {
-      freq = newFreq;
-      osc.setFrequency(freq);
-  }
-  // ======================================Check freqs with osc======================================
+    juce::dsp::AudioBlock<float> block(buffer);
+    // ======================================Check freqs with osc======================================
+    // buffer.clear();
+    
+    // // Process each channel independently
+    // auto leftBlock = block.getSingleChannelBlock(0);
+    // auto rightBlock = block.getSingleChannelBlock(1);
+
+    // juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
+    // juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+
+    // leftOsc.process(leftContext);
+    // rightOsc.process(rightContext);
+
+    // // Update frequency if needed
+    // float newFreq = JUCE_LIVE_CONSTANT(60.0f);
+    // if (freq != newFreq) {
+    //     freq = newFreq;
+    //     leftOsc.setFrequency(freq);
+    //     rightOsc.setFrequency(freq /* 1.01f*/);
+    // }
+    // ======================================Check freqs with osc======================================
 
     // Update the channel levels
     if (totalNumInputChannels >= 1)
@@ -186,12 +200,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     if (ledComm) {
         ledComm->setBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
     }
-
-    auto leftBlock = block.getSingleChannelBlock(0);
-    auto rightBlock = block.getSingleChannelBlock(1);
-
-    juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
-    juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
 
     leftChannelFifo.process(buffer);
     rightChannelFifo.process(buffer);
@@ -273,7 +281,6 @@ float AudioPluginAudioProcessor::calculateChannelLevel(const juce::AudioBuffer<f
     
     // Use the maximum of normalized RMS and peak for the final level
     float level = std::max(normalizedRMS, peakLevel);
-    
 
     // Ensure we don't exceed 1.0
     // std::cout << "level: " << juce::jlimit(0.0f, 1.0f, level) << std::endl;
