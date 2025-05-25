@@ -1,4 +1,4 @@
-#include "SimpleEQ/LEDCommunication.h"
+#include "SeeWhatYouHear/LEDCommunication.h"
 #include <windows.h>
 #include <iostream>
 
@@ -17,6 +17,7 @@ LEDCommunication::~LEDCommunication()
     stopThread(1000);
     if (hserial != INVALID_HANDLE_VALUE) {
         // Turn off LEDs before closing
+        std::cout << "Turning off LEDs before closing." << std::endl;
         prepareData(RGB{0, 0, 0}, RGB{0, 0, 0});
         DWORD bytesWritten;
         WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL);
@@ -31,19 +32,19 @@ void LEDCommunication::prepareData(RGB rgbLeftValues, RGB rgbRightValues)
     float rightScale = static_cast<float>(currentRightBrightness.load()) / 255.0f;
     
     RGB scaledRGBLeft{
-        static_cast<uint8_t>(rgbLeftValues.r * (leftScale)),
-        static_cast<uint8_t>(rgbLeftValues.g * (leftScale)),
-        static_cast<uint8_t>(rgbLeftValues.b * (leftScale))
+        static_cast<int>(rgbLeftValues.r * (leftScale)),
+        static_cast<int>(rgbLeftValues.g * (leftScale)),
+        static_cast<int>(rgbLeftValues.b * (leftScale))
     };
-    std::cout << "scaledRGBLeft: " << static_cast<int> (scaledRGBLeft.r) << " " << static_cast<int> (scaledRGBLeft.g) << " " << static_cast<int> (scaledRGBLeft.b) << std::endl;
-    std::cout << "leftScale: " << leftScale << std::endl;
+    // std::cout << "scaledRGBLeft: " << static_cast<int> (scaledRGBLeft.r) << " " << static_cast<int> (scaledRGBLeft.g) << " " << static_cast<int> (scaledRGBLeft.b) << std::endl;
+    // std::cout << "leftScale: " << leftScale << std::endl;
     RGB scaledRGBRight{
-        static_cast<uint8_t>(rgbRightValues.r * (rightScale)),
-        static_cast<uint8_t>(rgbRightValues.g * (rightScale)),
-        static_cast<uint8_t>(rgbRightValues.b * (rightScale))
+        static_cast<int>(rgbRightValues.r * (rightScale)),
+        static_cast<int>(rgbRightValues.g * (rightScale)),
+        static_cast<int>(rgbRightValues.b * (rightScale))
     };
-    std::cout << "scaledRGBRight: " << static_cast<int> (scaledRGBRight.r) << " " << static_cast<int> (scaledRGBRight.g) << " " << static_cast<int> (scaledRGBRight.b) << std::endl;
-    std::cout << "rightScale: " << rightScale << std::endl;
+    // std::cout << "scaledRGBRight: " << static_cast<int> (scaledRGBRight.r) << " " << static_cast<int> (scaledRGBRight.g) << " " << static_cast<int> (scaledRGBRight.b) << std::endl;
+    // std::cout << "rightScale: " << rightScale << std::endl;
     ledData[0] = static_cast<unsigned char>(0xFF);
     ledData[1] = static_cast<unsigned char>(currentLeftBrightness.load());
     ledData[2] = static_cast<unsigned char>(currentRightBrightness.load());
@@ -58,6 +59,21 @@ void LEDCommunication::prepareData(RGB rgbLeftValues, RGB rgbRightValues)
         ledData[(i + halfLEDs) * 3 + 4] = static_cast<unsigned char>(scaledRGBRight.g);
         ledData[(i + halfLEDs) * 3 + 5] = static_cast<unsigned char>(scaledRGBRight.b);
     }
+
+    //Debugging:
+    // ledData[3] = static_cast<unsigned char>(255);
+    // ledData[4] = static_cast<unsigned char>(rgbLeftValues.g);
+    // ledData[5] = static_cast<unsigned char>(rgbLeftValues.b);
+    // std::cout << "ledData[3]: " << static_cast<int> (ledData[3]) << std::endl;
+    // std::cout << "ledData[4]: " << static_cast<int> (ledData[4]) << std::endl;
+    // std::cout << "ledData[5]: " << static_cast<int> (ledData[5]) << std::endl;
+
+    // ledData[453] = static_cast<unsigned char>(255);
+    // ledData[454] = static_cast<unsigned char>(rgbRightValues.g);
+    // ledData[455] = static_cast<unsigned char>(rgbRightValues.b);
+    // std::cout << "ledData[453]: " << static_cast<int> (ledData[453]) << std::endl;
+    // std::cout << "ledData[454]: " << static_cast<int> (ledData[454]) << std::endl;
+    // std::cout << "ledData[455]: " << static_cast<int> (ledData[455]) << std::endl;
 }
 
 bool LEDCommunication::tryConnect()

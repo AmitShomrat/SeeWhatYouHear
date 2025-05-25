@@ -1,6 +1,6 @@
-#include "SimpleEQ/PluginProcessor.h"
-#include "SimpleEQ/PluginEditor.h"
-#include "SimpleEQ/LEDCommunication.h"
+#include "SeeWhatYouHear/PluginProcessor.h"
+#include "SeeWhatYouHear/PluginEditor.h"
+#include "SeeWhatYouHear/LEDCommunication.h"
 #include <juce_dsp/juce_dsp.h>
 
 namespace audio_plugin {
@@ -23,17 +23,17 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     #if JUCE_DEBUG
         // Create a log file in the user's documents directory
         auto logFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
-                        .getChildFile("SimpleEQDebug.log");
+                        .getChildFile("SeeWhatYouHearDebug.log");
         
         // Create or clear the log file
         logFile.deleteFile();
         logFile.create();
 
         // Create a FileLogger and make it the current logger
-        fileLogger.reset(new juce::FileLogger(logFile, "SimpleEQ Debug Log"));
+        fileLogger.reset(new juce::FileLogger(logFile, "SeeWhatYouHear Debug Log"));
         juce::Logger::setCurrentLogger(fileLogger.get());
         
-        DBG("SimpleEQ Plugin: Constructor Called - Debug Logging Initialized");
+        DBG("SeeWhatYouHear Plugin: Constructor Called - Debug Logging Initialized");
     #endif
 }
 
@@ -113,7 +113,7 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   rightChannelFFTProcessor->prepare(sampleRate);
 
   // Initialize oscillators with 0.5 amplitude (multiply sin(x) by 0.5)
-  leftOsc.initialise([](float x) { return std::sin(x) * 0.7f; }, 128);
+  leftOsc.initialise([](float x) { return std::sin(x) * 0.3f; }, 128);
   rightOsc.initialise([](float x) { return std::sin(x) * 0.7f; }, 128);
   
   spec.numChannels = 1; // Set to 1 for mono processing

@@ -1,5 +1,5 @@
 // ColorDecisionML.cpp
-#include "SimpleEQ/ColorDecisionML.h"
+#include "SeeWhatYouHear/ColorDecisionML.h"
 
 namespace audio_plugin {
 

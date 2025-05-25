@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\9757c2fe527cbb8298e48e982b829e26\juce-populate-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\9757c2fe527cbb8298e48e982b829e26\juce-populate-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\9757c2fe527cbb8298e48e982b829e26\juce-populate-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\9757c2fe527cbb8298e48e982b829e26\juce-populate-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\9757c2fe527cbb8298e48e982b829e26\juce-populate-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\9757c2fe527cbb8298e48e982b829e26\juce-populate-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\9757c2fe527cbb8298e48e982b829e26\juce-populate-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\9757c2fe527cbb8298e48e982b829e26\juce-populate-test.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\a17004b73f8053d1def5e94056393b32\juce-populate-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\7833dfe702a48c67ed2c792e4d9a49c7\juce-populate.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\host-build\_deps\juce-subbuild\CMakeFiles\juce-populate" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{1B609FB3-3B70-3ED5-A9DB-7DB3E5D085C1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

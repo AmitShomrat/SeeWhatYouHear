@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/googletest-populate"
+		},
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/788fec63e959b8f1113ba510c0c95747/googletest-populate.rule"
+		},
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/253b9b1440b625a0b37af4e2c2d239cf/googletest-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/5e96b9f28bd530e95562ed176b8d8cd2/googletest-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/5e96b9f28bd530e95562ed176b8d8cd2/googletest-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/5e96b9f28bd530e95562ed176b8d8cd2/googletest-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/5e96b9f28bd530e95562ed176b8d8cd2/googletest-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/5e96b9f28bd530e95562ed176b8d8cd2/googletest-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/5e96b9f28bd530e95562ed176b8d8cd2/googletest-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/5e96b9f28bd530e95562ed176b8d8cd2/googletest-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/_deps/googletest-subbuild/CMakeFiles/5e96b9f28bd530e95562ed176b8d8cd2/googletest-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"googletest-populate"
+		],
+		"name" : "googletest-populate"
+	}
+}

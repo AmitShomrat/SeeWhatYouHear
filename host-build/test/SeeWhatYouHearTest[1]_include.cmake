@@ -1,0 +1,5 @@
+if(EXISTS "C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/test/SeeWhatYouHearTest[1]_tests.cmake")
+  include("C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/test/SeeWhatYouHearTest[1]_tests.cmake")
+else()
+  add_test(SeeWhatYouHearTest_NOT_BUILT SeeWhatYouHearTest_NOT_BUILT)
+endif()

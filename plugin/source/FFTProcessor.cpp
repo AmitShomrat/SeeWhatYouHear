@@ -1,4 +1,4 @@
-#include "SimpleEQ/FFTProcessor.h"
+#include "SeeWhatYouHear/FFTProcessor.h"
 namespace audio_plugin {
 void FFTProcessor::run() {
     while (!threadShouldExit()) {

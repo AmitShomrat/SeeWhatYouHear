@@ -1,6 +1,6 @@
-#include "SimpleEQ/PluginEditor.h"
-#include "SimpleEQ/PluginProcessor.h"
-#include "SimpleEQ/LEDCommunication.h"
+#include "SeeWhatYouHear/PluginEditor.h"
+#include "SeeWhatYouHear/PluginProcessor.h"
+#include "SeeWhatYouHear/LEDCommunication.h"
 #include <juce_gui_extra/juce_gui_extra.h>
 
 namespace audio_plugin {
@@ -55,21 +55,6 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
 
     g.fillPath(p);
 
-    // // Adding text of value to the slider.
-    // g.setFont(static_cast<float>(rswl -> getTextHeight()));
-    // auto text = rswl -> getDisplayString();
-
-    // // Use utility function instead of duplicated code
-    // auto textWidth = getTextWidth(g.getCurrentFont(), text);
-
-    // r.setSize(textWidth + 4, static_cast<float>(rswl -> getTextHeight()) + 2);
-    // r.setCentre(bounds.getCentre());
-    
-    // g.setColour(Colours::black);
-    // g.fillRect(r);
-
-    // g.setColour(Colours::white);
-    // g.drawFittedText(text, r.toNearestInt(), juce::Justification::centred, 1);
   }
 
   juce::ignoreUnused(sliderPosProportional, rotaryStartAngle, rotaryEndAngle, slider);
