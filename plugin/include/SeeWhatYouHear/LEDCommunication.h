@@ -30,44 +30,8 @@ class LEDCommunication : public juce::Thread {
         shouldReconnect.store(true);
     }
 
-    void setBrightness(float leftBrightness, float rightBrightness, float userBrightness)
-    { 
-      // Use decibels scaling with expanded range (-60dB to 0dB)
-      float leftScaled = juce::Decibels::decibelsToGain(std::abs(leftBrightness) * 60.0f - 60.0f);
-      float rightScaled = juce::Decibels::decibelsToGain(std::abs(rightBrightness) * 60.0f - 60.0f);
-      // auto skew = JUCE_LIVE_CONSTANT(0.6f);
-      leftScaled = std::pow(leftScaled, 0.6f);
-      rightScaled = std::pow(rightScaled, 0.6f);
-
-      // Apply user brightness with non-linear scaling to maintain sensitivity at lower values
-      // Normalize userBrightness to 0-1 range considering the max value of 0.135f
-      float normalizedBrightness = userBrightness / 0.135f;
-      
-      // Apply more aggressive exponential scaling for better control at lower values
-      float brightnessScale = std::pow(normalizedBrightness, 2.0f);  // Square for more aggressive curve at low values
-
-      float mappedValueLeft = juce::jmap(
-          leftScaled,
-          juce::Decibels::decibelsToGain(-60.0f),   // input range start (minimum gain)
-          juce::Decibels::decibelsToGain(0.0f),     // input range end (maximum gain = 1.0)
-          0.0f,   // output range start
-          255.0f  // output range end
-      ) * brightnessScale;  // Apply user brightness scaling
-
-      float mappedValueRight = juce::jmap(
-          rightScaled,
-          juce::Decibels::decibelsToGain(-60.0f),   // input range start (minimum gain)
-          juce::Decibels::decibelsToGain(0.0f),     // input range end (maximum gain = 1.0)
-          0.0f,   // output range start
-          255.0f  // output range end
-      ) * brightnessScale;  // Apply user brightness scaling
-
-      // Convert to int with rounding
-      currentLeftBrightness.store(static_cast<int>(std::round(mappedValueLeft))); 
-      currentRightBrightness.store(static_cast<int>(std::round(mappedValueRight)));
-      // std::cout << "currentLeftBrightness: " << currentLeftBrightness.load() << std::endl;
-      // std::cout << "currentRightBrightness: " << currentRightBrightness.load() << std::endl;
-    }
+    void setBrightness(float leftBrightness, float rightBrightness, float userBrightness);
+    
   private:
     void prepareData(RGB rgbLeftValues, RGB rgbRightValues);
     bool tryConnect();
@@ -78,11 +42,13 @@ class LEDCommunication : public juce::Thread {
     HANDLE hserial;
 
     std::atomic<Color> currentColor{Color::Yellow};
+    RGB constRGB{RGB{255, 0, 0}};
+
     std::atomic<int> currentLeftBrightness{0};
     std::atomic<int> currentRightBrightness{0};
     std::atomic<bool> isPortConnected{false};
     std::atomic<bool> shouldReconnect{false};
-
+    
     ColorDecisionML& leftColorDecisionML;
     ColorDecisionML& rightColorDecisionML;
 

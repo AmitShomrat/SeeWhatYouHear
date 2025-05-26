@@ -4,7 +4,7 @@ void FFTProcessor::run() {
     while (!threadShouldExit()) {
         process();
         // Reduce update rate to 30Hz (33ms) to lower CPU usage
-        wait(16);
+        wait(8);
     }
 }
 

@@ -426,7 +426,7 @@ void LEDSimulator::timerCallback()
     // Get channel levels
     float targetLeftLevel = processorRef.leftChannelLevel.get();
     float targetRightLevel = processorRef.rightChannelLevel.get();
-    float targetBrightness = processorRef.apvts.getRawParameterValue("Brightness")->load();
+    float userBrightness = processorRef.apvts.getRawParameterValue("Brightness")->load();
     
     // Apply smoothing to levels
     const float smoothingCoeff = 0.9f; //Higher = Fast response, Lower = Slow response.
@@ -434,17 +434,17 @@ void LEDSimulator::timerCallback()
     rightLevelSmoothed = rightLevelSmoothed + smoothingCoeff * (targetRightLevel - rightLevelSmoothed);
     
     // Only bypass step 0
-    float brightnessScale = 0.0f;
-    if (targetBrightness >= 0.019f) {  // Start from step 1
+    float userBrightnessScale = 0.0f;
+    if (userBrightness >= 0.019f) {  // Start from step 1
         // Rescale to ensure step 1 is visible
-        brightnessScale = juce::jmap(targetBrightness, 
+        userBrightnessScale = juce::jmap(userBrightness, 
                                    0.019f, 0.135f,  // Input range: from step 1 to max
                                    0.2f, 1.0f);     // Output range: start at 20% brightness
     }
     
     // Apply brightness scaling to smoothed levels
-    leftLevelSmoothed *= brightnessScale;
-    rightLevelSmoothed *= brightnessScale;
+    leftLevelSmoothed *= userBrightnessScale;
+    rightLevelSmoothed *= userBrightnessScale;
     
     // Get current RGB values
     RGB leftRGB = leftColorDecisionML.getCurrentRGB();

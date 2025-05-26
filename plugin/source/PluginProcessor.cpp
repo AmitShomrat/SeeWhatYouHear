@@ -40,7 +40,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {}
 
 const juce::String AudioPluginAudioProcessor::getName() const {
-  return JucePlugin_Name;
+  return "SeeWhatYouHear";
 }
 
 bool AudioPluginAudioProcessor::acceptsMidi() const {
@@ -113,8 +113,8 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   rightChannelFFTProcessor->prepare(sampleRate);
 
   // Initialize oscillators with 0.5 amplitude (multiply sin(x) by 0.5)
-  leftOsc.initialise([](float x) { return std::sin(x) * 0.3f; }, 128);
-  rightOsc.initialise([](float x) { return std::sin(x) * 0.7f; }, 128);
+  leftOsc.initialise([](float x) { return std::sin(x); }, 128);
+  rightOsc.initialise([](float x) { return std::sin(x); }, 128);
   
   spec.numChannels = 1; // Set to 1 for mono processing
   leftOsc.prepare(spec);
