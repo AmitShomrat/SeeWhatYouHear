@@ -1,6 +1,5 @@
-#include "SeeWhatYouHear/PluginEditor.h"
-#include "SeeWhatYouHear/PluginProcessor.h"
-#include "SeeWhatYouHear/LEDCommunication.h"
+#include "SimpleEQ/PluginEditor.h"
+#include "SimpleEQ/PluginProcessor.h"
 #include <juce_gui_extra/juce_gui_extra.h>
 
 namespace audio_plugin {
@@ -9,7 +8,7 @@ namespace audio_plugin {
 float getTextWidth(const juce::Font& font, const juce::String& text)
 {
     juce::GlyphArrangement glyphs;
-    glyphs.addFittedText(font, text, 0.0f, 0.0f, 1000.0f, 100.0f, juce::Justification::left, 1, 0.f);
+    glyphs.addFittedText(font, text, 0.0f, 0.0f, 1000.0f, 100.0f, juce::Justification::left, 1);
     return glyphs.getBoundingBox(0, -1, true).getWidth();
 }
 
@@ -23,7 +22,7 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
 {
   using namespace juce;
 
-  auto bounds = juce::Rectangle<float>(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
+  auto bounds = Rectangle<float>(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
   g.setColour(Colours::red);
   g.fillEllipse(bounds);
 
@@ -35,7 +34,7 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
     auto center = bounds.getCentre();
     Path p; 
 
-    juce::Rectangle<float> r;
+    Rectangle<float> r;
     r.setLeft(center.getX() - 2);
     r.setRight(center.getX() + 2);
     r.setTop(bounds.getY());
@@ -55,6 +54,21 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
 
     g.fillPath(p);
 
+    // // Adding text of value to the slider.
+    // g.setFont(static_cast<float>(rswl -> getTextHeight()));
+    // auto text = rswl -> getDisplayString();
+
+    // // Use utility function instead of duplicated code
+    // auto textWidth = getTextWidth(g.getCurrentFont(), text);
+
+    // r.setSize(textWidth + 4, static_cast<float>(rswl -> getTextHeight()) + 2);
+    // r.setCentre(bounds.getCentre());
+    
+    // g.setColour(Colours::black);
+    // g.fillRect(r);
+
+    // g.setColour(Colours::white);
+    // g.drawFittedText(text, r.toNearestInt(), juce::Justification::centred, 1);
   }
 
   juce::ignoreUnused(sliderPosProportional, rotaryStartAngle, rotaryEndAngle, slider);
@@ -71,10 +85,10 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
 
   auto sliderBounds = getSliderBounds();
 
-  // g.setColour(Colours::red);
-  // g.drawRect(getLocalBounds()); //Debugging tests.
-  // g.setColour(Colours::white);
-  // g.drawRect(sliderBounds); //Debugging tests.
+  g.setColour(Colours::red);
+  g.drawRect(getLocalBounds()); //Debugging tests.
+  g.setColour(Colours::white);
+  g.drawRect(sliderBounds); //Debugging tests.
 
   getLookAndFeel().drawRotarySlider(g, 
                                     sliderBounds.getX(), 
@@ -101,7 +115,7 @@ void RotarySliderWithLabels::paint(juce::Graphics& g) {
     auto ang = jmap(pos, 0.f, 1.f, startAng, endAng);
     auto c = center.getPointOnCircumference(static_cast<float>(radius) + getTextHeight() * 0.5f + 1, ang);
 
-    juce::Rectangle<float> r;
+    Rectangle<float> r;
     auto str = labels[i].label;
     
     // Use utility function instead of duplicated code
@@ -136,13 +150,54 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
   return r;
 }
 
+// juce::String RotarySliderWithLabels::getDisplayString() const 
+// {
+//   if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(param)) 
+//     return choiceParam -> getCurrentChoiceName();
+  
+//   juce::String str;
+//   bool addK = false;
+  
+//   if(auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(param)) {
+//     float val = floatParam -> get();
+
+//     if(val > 999.f) {
+//       val /= 1000.f;
+//       addK = true;
+//     }
+//     str = juce::String(val, (addK ? 2 : 0));
+//   }
+
+//   else 
+//   {
+//     jassertfalse; //This should never happen.
+//   }
+
+//   if(suffix.isNotEmpty()) {
+//     str << " " ;
+//     if(addK) str << "k";
+//     str << suffix;
+//   }
+//  return str;
+// }
+
 //============================================================================================================================
 //This Component is a listener and Timer object.
 ResponseCurveComponent::ResponseCurveComponent(AudioPluginAudioProcessor& p)
-: processorRef(p),
-leftPathProducer(processorRef.leftChannelFFTProcessor),
-rightPathProducer(processorRef.rightChannelFFTProcessor)
+: processorRef(p), 
+// leftChannelFifo(&processorRef.leftChannelFifo)
+leftPathProducer(processorRef.leftChannelFifo), 
+rightPathProducer(processorRef.rightChannelFifo)
 {  
+
+  const auto& params = processorRef.getParameters();
+  for(auto param : params) {
+    param -> addListener(this);// To observe the changes in the parameters.
+  }
+
+  
+  // updateChain();
+  
   startTimerHz(60); //timerCallback function is called 60 times per second.
 }
 //This function is called when the parameter value changes.
@@ -151,31 +206,67 @@ void ResponseCurveComponent::parameterValueChanged (int parameterIndex, float ne
   parametersChanged.set(true);
 }
 
-ResponseCurveComponent::~ResponseCurveComponent() {}
-void PathProducer::process(juce::Rectangle<float> fftBounds, double sampleRate) 
-{
-    juce::ignoreUnused(fftBounds, sampleRate);  // Add this line to fix the warning
-    while(leftChannelFFTProcessor-> isAvailable())//Consuming FFTData blocks in order to generate a path.
-    {
-      std::vector<float> fftData;
-      auto fftSize = leftChannelFFTProcessor -> getFFTSize();
-      auto binWidth = leftChannelFFTProcessor -> getFFTBinWidth();
-      if(leftChannelFFTProcessor-> getLatestFFTData(fftData))
-      {
-        pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
-      }
-    }
-    /*
-    while there are path producer available, 
-        pull as many as you can 
-              display the most recent one.
-    */
-    while(pathProducer.getNumPathsAvailable() > 0)
-    {
-      pathProducer.getPath(leftChannelFFTPath);
-    }
+ResponseCurveComponent::~ResponseCurveComponent() {
+  const auto& params = processorRef.getParameters();
+  for(auto param : params) {
+    param -> removeListener(this);
+  }
 }
 
+void PathProducer::process(juce::Rectangle<float> fftBounds, double sampleRate) 
+{
+  juce::AudioBuffer<float> tempIncomingBuffer;
+  //As long as there are complete buffers available, process them.
+  while(leftChannelFifo->getNumCompleteBuffersAvailable() > 0)
+  {
+    //If there is a complete buffer available, get it.
+    if(leftChannelFifo->getAudioBuffer(tempIncomingBuffer))
+    {
+      auto size = tempIncomingBuffer.getNumSamples();
+      //Shift the buffer to the left.
+      juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, 0), 
+                                        monoBuffer.getReadPointer(0, size), 
+                                        monoBuffer.getNumSamples() - size);
+
+      //Copy the new samples to the end of the buffer.
+      juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, monoBuffer.getNumSamples() - size),
+                                        tempIncomingBuffer.getReadPointer(0, 0), 
+                                        size);
+
+      leftChannelFFTDataGenerator.produceFFTDataForRendering(monoBuffer, -48.f);                                      
+    }
+  }
+
+   /*
+  if there are FFT data buffer to pull.
+    if we can pull a buffer, generate a path 
+  */
+  const auto fftSize = leftChannelFFTDataGenerator.getFFTSize();
+  /*
+  48000 / 2048 = 23Hz <- this is the bin width.
+  */
+  const auto binWidth = sampleRate / static_cast<double>(fftSize);
+
+  while(leftChannelFFTDataGenerator.getNumAvailableFFTDataBlocks() > 0)
+  {
+    std::vector<float> fftData;
+    if(leftChannelFFTDataGenerator.getFFTData(fftData))
+    {
+      pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
+    }
+  }
+
+  /*
+  while there are path producer available, 
+      pull as many as you can 
+            display the most recent one.
+  */
+
+  while(pathProducer.getNumPathsAvailable() > 0)
+  {
+    pathProducer.getPath(leftChannelFFTPath );
+  }
+}
 void ResponseCurveComponent::timerCallback() {
   
   auto fftBounds = getAnalysisArea().toFloat();
@@ -184,8 +275,29 @@ void ResponseCurveComponent::timerCallback() {
   leftPathProducer.process(fftBounds, sampleRate);
   rightPathProducer.process(fftBounds, sampleRate);
 
+  if(parametersChanged.compareAndSetBool(false, true)) {// If the parameter value has changed, then update the monochain.
+    DBG("Parameter changed");
+    //update the monochain
+    //signal a repaint
+    // updateChain();
+  }
   repaint();
 }
+
+// void ResponseCurveComponent::updateChain() 
+// {
+
+//     auto chainSettings = getChainSettings(processorRef.apvts);
+//     auto peakCoefficients = makePeakFilter(chainSettings, processorRef.getSampleRate());
+//     updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+
+//     auto lowCutCoefficients = makeLowCutFilter(chainSettings, processorRef.getSampleRate());
+//     auto highCutCoefficients = makeHighCutFilter(chainSettings, processorRef.getSampleRate());
+
+//     updateCutFilters(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
+//     updateCutFilters(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
+
+// }
 void ResponseCurveComponent::paint(juce::Graphics& g) {
   using namespace juce;
   g.fillAll(Colours::black);
@@ -195,6 +307,58 @@ void ResponseCurveComponent::paint(juce::Graphics& g) {
   // auto responseArea = getLocalBounds();
   auto responseArea = getAnalysisArea();
   
+  // auto w = responseArea.getWidth();
+
+  // auto& lowCut = monoChain.get<ChainPositions::LowCut>();
+  // auto& highCut = monoChain.get<ChainPositions::HighCut>();
+  // auto& peak = monoChain.get<ChainPositions::Peak>();
+
+  // auto sampleRate = processorRef.getSampleRate();
+
+  // std::vector<double> mags;
+  // mags.resize(w);
+  // for(int i = 0; i < w; ++i) {
+  //   double mag = 1.f;
+  //   auto freq = mapToLog10(double(i) / double(w), 20.0, 20000.0);
+
+  //   if(! monoChain.isBypassed<ChainPositions::Peak>()) 
+  //     mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
+
+  //   if(! lowCut.isBypassed<0>()) 
+  //     mag *= lowCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+  //   if(! lowCut.isBypassed<1>()) 
+  //     mag *= lowCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+  //   if(! lowCut.isBypassed<2>()) 
+  //     mag *= lowCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+  //   if(! lowCut.isBypassed<3>()) 
+  //     mag *= lowCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+
+
+  //   if(! highCut.isBypassed<0>()) 
+  //     mag *= highCut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+  //   if(! highCut.isBypassed<1>()) 
+  //     mag *= highCut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+  //   if(! highCut.isBypassed<2>()) 
+  //     mag *= highCut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+  //   if(! highCut.isBypassed<3>()) 
+  //     mag *= highCut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+
+  //   mags[i] = juce::Decibels::gainToDecibels(mag);
+  // }
+
+  // Path responseCurve;
+
+  // const double outputMin = responseArea.getBottom();
+  // const double outputMax = responseArea.getY();
+  // auto map = [outputMin, outputMax](double input) {
+  //   return juce::jmap(input, -24.0, 24.0, outputMin, outputMax);
+  // };
+
+  // responseCurve.startNewSubPath(static_cast<float>(responseArea.getX()), static_cast<float>(map(mags.front())));
+
+  // for (size_t i = 1; i < mags.size(); ++i) {
+  //   responseCurve.lineTo(static_cast<float>(responseArea.getX() + i), static_cast<float>(map(mags[i])));
+  // }
   auto leftChannelFFTPath = leftPathProducer.getPath();
   leftChannelFFTPath.applyTransform(AffineTransform().translation(static_cast<float>(responseArea.getX()), static_cast<float>(responseArea.getY())));
 
@@ -292,7 +456,7 @@ void ResponseCurveComponent::resized()
     // Use utility function instead of duplicated code
     auto textWidth = getTextWidth(g.getCurrentFont(), str);
 
-    juce::Rectangle<int> r;
+    Rectangle<int> r;
     r.setSize(static_cast<int>(textWidth), fontHeight);
     r.setCentre(static_cast<int>(x), 0);
     r.setY(1);
@@ -313,7 +477,7 @@ void ResponseCurveComponent::resized()
 
     auto textWidth = getTextWidth(g.getCurrentFont(), str);
 
-    juce::Rectangle<int> r;
+    Rectangle<int> r;
     r.setSize(static_cast<int>(textWidth), fontHeight);
     r.setX(static_cast<int>(getWidth() - textWidth));
     r.setCentre(r.getCentreX(), static_cast<int>(y));
@@ -352,9 +516,10 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
   return bounds;
 }
 
-LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication>& comm)
-    : processorRef(p), ledComm(comm), leftColorDecisionML(p.leftColorDecisionML), rightColorDecisionML(p.rightColorDecisionML)
+LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p) : 
+    processorRef(p)
 {
+    // Start timer for smooth level changes (60fps)
     startTimerHz(60);
 }
 
@@ -367,10 +532,10 @@ void LEDSimulator::paint(juce::Graphics& g)
 {
     auto bounds = getLEDArea();
 
-    // g.setColour(juce::Colours::red);
-    // g.drawRect(getLocalBounds());
-    // g.setColour(juce::Colours::white);
-    // g.drawRect(bounds);
+    g.setColour(juce::Colours::red);
+    g.drawRect(getLocalBounds());
+    g.setColour(juce::Colours::white);
+    g.drawRect(bounds);
     // Draw background
     g.setColour(juce::Colours::black);
     g.fillRect(bounds);
@@ -386,23 +551,12 @@ void LEDSimulator::paint(juce::Graphics& g)
     // Create LED areas
     auto leftLedArea = bounds.withX(leftLabelArea.getRight()).withWidth(ledWidth);
     auto rightLedArea = bounds.withX(bounds.getRight() - labelWidth - ledWidth).withWidth(ledWidth);
-  
-    // Get RGB values from ColorDecisionML
-    // RGB leftRGB = leftColorDecisionML.getCurrentRGB();
-    // RGB rightRGB = rightColorDecisionML.getCurrentRGB();
     
-    // Create LED colors with proper uint8_t casting
-    juce::Colour leftLedColor = juce::Colour::fromRGB(static_cast<uint8_t>(currentLeftRGB.r), static_cast<uint8_t>(currentLeftRGB.g), static_cast<uint8_t>(currentLeftRGB.b));
-    juce::Colour rightLedColor = juce::Colour::fromRGB(static_cast<uint8_t>(currentRightRGB.r), static_cast<uint8_t>(currentRightRGB.g), static_cast<uint8_t>(currentRightRGB.b));
-
-    // std::cout << "leftRGB: " << static_cast<int>(leftLedColor.getRed()) << " " << static_cast<int>(leftLedColor.getGreen()) << " " << static_cast<int>(leftLedColor.getBlue()) << std::endl;
-    // std::cout << "rightRGB: " << static_cast<int>(rightLedColor.getRed()) << " " << static_cast<int>(rightLedColor.getGreen()) << " " << static_cast<int>(rightLedColor.getBlue()) << std::endl;
     // Draw LEDs
-    drawLED(g, leftLedArea, leftLevelSmoothed, leftLedColor);
-    drawLED(g, rightLedArea, rightLevelSmoothed, rightLedColor);
-    // Update physical LED color
-    // ledComm->setColor(color);
-
+    juce::Colour ledColor = juce::Colours::red;
+    drawLED(g, leftLedArea, leftLevelSmoothed, ledColor);
+    drawLED(g, rightLedArea, rightLevelSmoothed, ledColor);
+    
     // Draw labels
     // Use a simpler font approach
 
@@ -426,50 +580,18 @@ void LEDSimulator::timerCallback()
     // Get channel levels
     float targetLeftLevel = processorRef.leftChannelLevel.get();
     float targetRightLevel = processorRef.rightChannelLevel.get();
-    float userBrightness = processorRef.apvts.getRawParameterValue("Brightness")->load();
     
-    // Apply smoothing to levels
-    const float smoothingCoeff = 0.9f; //Higher = Fast response, Lower = Slow response.
-    leftLevelSmoothed = leftLevelSmoothed + smoothingCoeff * (targetLeftLevel - leftLevelSmoothed);
-    rightLevelSmoothed = rightLevelSmoothed + smoothingCoeff * (targetRightLevel - rightLevelSmoothed);
+    // Apply smoothing
+    const float smoothingCoeff = /*JUCE_LIVE_CONSTANT(0.2f)*/ 0.9f; //Higher = Fast response, Lower = Slow response.
+    leftLevelSmoothed = leftLevelSmoothed + (smoothingCoeff * (targetLeftLevel - leftLevelSmoothed));
+    rightLevelSmoothed = rightLevelSmoothed + (smoothingCoeff * (targetRightLevel - rightLevelSmoothed));
     
-    // Only bypass step 0
-    float userBrightnessScale = 0.0f;
-    if (userBrightness >= 0.019f) {  // Start from step 1
-        // Rescale to ensure step 1 is visible
-        userBrightnessScale = juce::jmap(userBrightness, 
-                                   0.019f, 0.135f,  // Input range: from step 1 to max
-                                   0.2f, 1.0f);     // Output range: start at 20% brightness
-    }
-    
-    // Apply brightness scaling to smoothed levels
-    leftLevelSmoothed *= userBrightnessScale;
-    rightLevelSmoothed *= userBrightnessScale;
-    
-    // Get current RGB values
-    RGB leftRGB = leftColorDecisionML.getCurrentRGB();
-    RGB rightRGB = rightColorDecisionML.getCurrentRGB();
-    
-    // Check for any changes in brightness or color
-    bool needsRepaint = false;
-    
-    // Check brightness changes
+    // Only repaint if levels changed significantly
     if (std::abs(leftLevelSmoothed - leftChannelLevel) > 0.01f || 
-        std::abs(rightLevelSmoothed - rightChannelLevel) > 0.01f) {
-        needsRepaint = true;
-    }
-    
-    // Check color changes
-    if (currentLeftRGB != leftRGB || currentRightRGB != rightRGB) {
-        needsRepaint = true;
-    }
-    
-    // Update values and repaint if needed
-    if (needsRepaint) {
+        std::abs(rightLevelSmoothed - rightChannelLevel) > 0.01f)
+    {
         leftChannelLevel = leftLevelSmoothed;
         rightChannelLevel = rightLevelSmoothed;
-        currentLeftRGB = leftRGB;
-        currentRightRGB = rightRGB;
         repaint();
     }
 }
@@ -488,7 +610,7 @@ void LEDSimulator::drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, flo
 {
     // Scale brightness with more aggressive non-linear curve for better dynamic range
     // This will keep low levels very dark and make high levels pop
-    float scaledBrightness = std::pow(brightness, 0.5f); // Less aggressive curve (0.5 instead of 0.7)
+    float scaledBrightness = std::pow(brightness, 1.5f); // Less aggressive curve (0.5 instead of 0.7)
     
     auto center = bounds.getCentre();
     
@@ -555,23 +677,56 @@ void LEDSimulator::drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, flo
 }
 
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
-    : juce::AudioProcessorEditor(&p), 
-      processorRef(p),
-      ledComm(p.getLEDCommunication()),
-      brightnessSlider(*processorRef.apvts.getParameter("Brightness"), ""),
-      colorSlider(*processorRef.apvts.getParameter("Color"), ""),
+    : juce::AudioProcessorEditor(&p), processorRef(p),
+      brightnessSlider("Brightness"),
+      // peakFreqSlider(*processorRef.apvts.getParameter("Peak Freq"), "Hz"),
+      // peakGainSlider(*processorRef.apvts.getParameter("Peak Gain"), "dB"),
+      // peakQualitySlider(*processorRef.apvts.getParameter("Peak Quality"), ""),
+      // lowCutFreqSlider(*processorRef.apvts.getParameter("LowCut Freq"), "Hz"),
+      // highCutFreqSlider(*processorRef.apvts.getParameter("HighCut Freq"), "Hz"),
+      // lowCutSlopeSlider(*processorRef.apvts.getParameter("LowCut Slope"), "dB/Oct"),
+      // highCutSlopeSlider(*processorRef.apvts.getParameter("HighCut Slope"), "dB/Oct"),
       responseCurveComponent(p),
-      ledSimulator(p, ledComm),
-      brightnessSliderAttachment(processorRef.apvts, "Brightness", brightnessSlider),
-      colorSliderAttachment(processorRef.apvts, "Color", colorSlider)
+      ledSimulator(p)
+      // peakFreqSliderAttachment(processorRef.apvts, "Peak Freq", peakFreqSlider),
+      // peakGainSliderAttachment(processorRef.apvts, "Peak Gain", peakGainSlider),
+      // peakQualitySliderAttachment(processorRef.apvts, "Peak Quality", peakQualitySlider),
+      // lowCutFreqSliderAttachment(processorRef.apvts, "LowCut Freq", lowCutFreqSlider),
+      // highCutFreqSliderAttachment(processorRef.apvts, "HighCut Freq", highCutFreqSlider),
+      // lowCutSlopeSliderAttachment(processorRef.apvts, "LowCut Slope", lowCutSlopeSlider),
+      // highCutSlopeSliderAttachment(processorRef.apvts, "HighCut Slope", highCutSlopeSlider)
 {
+  // Add labels to all sliders
+  // peakFreqSlider.labels.add({0.f, "20Hz"});
+  // peakFreqSlider.labels.add({1.f, "20kHz"});
+  // lowCutFreqSlider.labels.add({0.f, "20Hz"});
+  // lowCutFreqSlider.labels.add({1.f, "20kHz"});
+  // highCutFreqSlider.labels.add({0.f, "20Hz"});
+  // highCutFreqSlider.labels.add({1.f, "20kHz"});
+  // peakGainSlider.labels.add({0.f, "-24dB"});
+  // peakGainSlider.labels.add({1.f, "+24dB"});
+  // peakQualitySlider.labels.add({0.f, "0.1"});
+  // peakQualitySlider.labels.add({1.f, "10.0"});
+  // lowCutSlopeSlider.labels.add({0.f, "12"});
+  // lowCutSlopeSlider.labels.add({1.f, "48"});
+  // highCutSlopeSlider.labels.add({0.f, "12"});
+  // highCutSlopeSlider.labels.add({1.f, "48"});
+
+  // juce::ignoreUnused(processorRef);
+
+  //Sliders are commented.
   for(auto* comp : getComps()) {
     this -> addAndMakeVisible(comp);
   }
+
+
   setSize(600,400);
 }
 
-AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {}
+AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() 
+{
+
+}
 
 void AudioPluginAudioProcessorEditor::paint(juce::Graphics& g) {
   using namespace juce;
@@ -596,22 +751,38 @@ void AudioPluginAudioProcessorEditor::resized() {
   auto brightnessSliderArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
   brightnessSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 0.10));
   brightnessSlider.setBounds(brightnessSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 3)));
+  
+  // Rest of existing layout code (commented out as we're hiding sliders)
+  // bounds.removeFromTop(5);
+  // auto lowCutArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
+  // auto highCutArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.5));
+  
+  // lowCutFreqSlider.setBounds(lowCutArea.removeFromTop(static_cast<int>(lowCutArea.getHeight() * 0.5)));
+  // lowCutSlopeSlider.setBounds(lowCutArea);
+  // highCutFreqSlider.setBounds(highCutArea.removeFromTop(static_cast<int>(highCutArea.getHeight() * 0.5)));
+  // highCutSlopeSlider.setBounds(highCutArea);
 
-  auto colorSliderArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.5));
-  colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 0.10));
-  colorSlider.setBounds(colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 3)));
+  // peakFreqSlider.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.33)));
+  // peakGainSlider.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.5)));
+  // peakQualitySlider.setBounds(bounds);
 
 }
 
 std::vector<juce::Component*> AudioPluginAudioProcessorEditor::getComps() {
   // Commented out all sliders as requested
   return {
-    &colorSlider,
+    /*
+    &peakFreqSlider,
+    &peakGainSlider,
+    &peakQualitySlider,
+    &highCutFreqSlider,
+    &lowCutFreqSlider,
+    &lowCutSlopeSlider,
+    &highCutSlopeSlider,
+    */
     &brightnessSlider,
     &responseCurveComponent,
     &ledSimulator
   };
 }
-
 }  // namespace audio_plugin
-

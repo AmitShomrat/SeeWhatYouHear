@@ -1,6 +1,5 @@
-#include "SeeWhatYouHear/PluginProcessor.h"
-#include "SeeWhatYouHear/PluginEditor.h"
-#include "SeeWhatYouHear/LEDCommunication.h"
+#include "SimpleEQ/PluginProcessor.h"
+#include "SimpleEQ/PluginEditor.h"
 #include <juce_dsp/juce_dsp.h>
 
 namespace audio_plugin {
@@ -13,34 +12,13 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 #endif
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-      ),
-      leftColorDecisionML(1 << order2048),
-      rightColorDecisionML(1 << order2048),
-      ledComm(std::make_shared<audio_plugin::LEDCommunication>("COM3", leftColorDecisionML, rightColorDecisionML)),
-      leftChannelFFTProcessor(std::make_shared<FFTProcessor>(leftChannelFifo, leftColorDecisionML)),
-      rightChannelFFTProcessor(std::make_shared<FFTProcessor>(rightChannelFifo, rightColorDecisionML)) {
-    // Setup debug logging
-    #if JUCE_DEBUG
-        // Create a log file in the user's documents directory
-        auto logFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
-                        .getChildFile("SeeWhatYouHearDebug.log");
-        
-        // Create or clear the log file
-        logFile.deleteFile();
-        logFile.create();
-
-        // Create a FileLogger and make it the current logger
-        fileLogger.reset(new juce::FileLogger(logFile, "SeeWhatYouHear Debug Log"));
-        juce::Logger::setCurrentLogger(fileLogger.get());
-        
-        DBG("SeeWhatYouHear Plugin: Constructor Called - Debug Logging Initialized");
-    #endif
+      ) {
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {}
 
 const juce::String AudioPluginAudioProcessor::getName() const {
-  return "SeeWhatYouHear";
+  return JucePlugin_Name;
 }
 
 bool AudioPluginAudioProcessor::acceptsMidi() const {
@@ -94,6 +72,56 @@ void AudioPluginAudioProcessor::changeProgramName(int index, const juce::String&
   juce::ignoreUnused(index, newName);
 }
 
+// Coefficients audio_plugin::makePeakFilter(const ChainSettings& chainSettings, double sampleRate) {
+//   return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+//     sampleRate,
+//     chainSettings.peakFreq,
+//     chainSettings.peakQuality,
+//     juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels)
+//   );
+// }
+
+// void AudioPluginAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings) {
+
+//   auto peakCoefficients = makePeakFilter(chainSettings, mySampleRate);
+//   updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+//   updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);  
+// }
+
+// void audio_plugin::updateCoefficients(Coefficients& old, const Coefficients& replacements) {
+//   *old = *replacements;
+// }
+
+// void AudioPluginAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettings) {
+//      //Setting the LowCutFreq coefficients
+//  auto lowlowCutCoefficients = makeLowCutFilter(chainSettings, mySampleRate);                                                                                                    
+
+//   auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
+//   auto& rightLowCut = rightChain.get<ChainPositions::LowCut>();
+
+//   updateCutFilters(leftLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
+//   updateCutFilters(rightLowCut, lowlowCutCoefficients, chainSettings.lowCutSlope );
+
+// }
+
+// void AudioPluginAudioProcessor::updateHighCutFilters(const ChainSettings& chainSettings) {
+//   auto highCutCoefficients = makeHighCutFilter(chainSettings, mySampleRate);
+
+//   auto& leftHighCut = leftChain.get<ChainPositions::HighCut>();
+//   updateCutFilters(leftHighCut, highCutCoefficients, chainSettings.highCutSlope );
+
+//   auto& rightHighCut = rightChain.get<ChainPositions::HighCut>();
+//   updateCutFilters(rightHighCut, highCutCoefficients, chainSettings.highCutSlope );
+
+// }
+
+// void AudioPluginAudioProcessor::updateFilters () {
+//   auto chainSettings = getChainSettings(apvts);
+//   updateLowCutFilters(chainSettings);
+//   updatePeakFilter(chainSettings);
+//   updateHighCutFilters(chainSettings);
+// }
+
 void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
   // Use this method as the place to do any pre-playback
   // initialisation that you need..
@@ -105,23 +133,18 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   spec.maximumBlockSize = samplesPerBlock;
   spec.numChannels = 1;
   spec.sampleRate = sampleRate;
+  // leftChain.prepare(spec);
+  // rightChain.prepare(spec);
+
+  // updateFilters();
 
   leftChannelFifo.prepare(samplesPerBlock);
   rightChannelFifo.prepare(samplesPerBlock);
 
-  leftChannelFFTProcessor->prepare(sampleRate);
-  rightChannelFFTProcessor->prepare(sampleRate);
-
-  // Initialize oscillators with 0.5 amplitude (multiply sin(x) by 0.5)
-  leftOsc.initialise([](float x) { return std::sin(x); }, 128);
-  rightOsc.initialise([](float x) { return std::sin(x); }, 128);
-  
-  spec.numChannels = 1; // Set to 1 for mono processing
-  leftOsc.prepare(spec);
-  rightOsc.prepare(spec);
-  
-  leftOsc.setFrequency(freq);  // Set left to base frequency
-  rightOsc.setFrequency(freq);  // Set right slightly higher for stereo width
+  // osc.initialise([](float x) { return std::sin(x); });
+  // spec.numChannels = getTotalNumOutputChannels();
+  // osc.prepare(spec);
+  // osc.setFrequency(1000);
 }
 
 void AudioPluginAudioProcessor::releaseResources() {
@@ -155,60 +178,50 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported(
 }
 
 void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-    juce::ignoreUnused(midiMessages);
+  juce::ignoreUnused(midiMessages);
 
-    juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
+  juce::ScopedNoDenormals noDenormals;
+  auto totalNumInputChannels = getTotalNumInputChannels();
+  auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, we'll clear any output
-    // channels that didn't contain input data
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
-        buffer.clear(i, 0, buffer.getNumSamples());
-    }
+  // In case we have more outputs than inputs, we'll clear any output
+  // channels that didn't contain input data, (because these aren't
+  // guaranteed to be empty - they may contain garbage).
+  // This is here to avoid people getting screaming feedback
+  // when they first compile a plugin, but obviously you don't need to keep
+  // this code if your algorithm always overwrites all the output channels.
+  for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
+    buffer.clear(i, 0, buffer.getNumSamples());
+  }
 
-    // juce::dsp::AudioBlock<float> block(buffer);
-    // ======================================Check freqs with osc======================================
-    // buffer.clear();
-    
-    // // Process each channel independently
-    // auto leftBlock = block.getSingleChannelBlock(0);
-    // auto rightBlock = block.getSingleChannelBlock(1);
+  // Update the channel levels
+  if (totalNumInputChannels >= 1)
+    leftChannelLevel.set(calculateChannelLevel(buffer, 0));
+  if (totalNumInputChannels >= 2)
+    rightChannelLevel.set(calculateChannelLevel(buffer, 1));
 
-    // juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
-    // juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+  // updateFilters();
 
-    // leftOsc.process(leftContext);
-    // rightOsc.process(rightContext);
+  juce::dsp::AudioBlock<float> block(buffer);
+  
+  //======================================Check freqs with osc======================================
+  // buffer.clear();
 
-    // // Update frequency if needed
-    // float newFreq = JUCE_LIVE_CONSTANT(60.0f);
-    // if (freq != newFreq) {
-    //     freq = newFreq;
-    //     leftOsc.setFrequency(freq);
-    //     rightOsc.setFrequency(freq /* 1.01f*/);
-    // }
-    // ======================================Check freqs with osc======================================
+  // juce::dsp::ProcessContextReplacing<float> StereoContext(block);
+  // osc.process(StereoContext);
+  //======================================Check freqs with osc======================================
 
-    // Update the channel levels
-    if (totalNumInputChannels >= 1)
-        leftChannelLevel.set(calculateChannelLevel(buffer, 0));
-    if (totalNumInputChannels >= 2)
-        rightChannelLevel.set(calculateChannelLevel(buffer, 1));
+  auto leftBlock = block.getSingleChannelBlock(0);
+  auto rightBlock = block.getSingleChannelBlock(1);
 
-    // Update LED communication with current levels
-    if (ledComm) {
-        ledComm->setBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
-    }
+  juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
+  juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
 
-    leftChannelFifo.process(buffer);
-    rightChannelFifo.process(buffer);
-}
+  // leftChain.process(leftContext);
+  // rightChain.process(rightContext);
 
-void AudioPluginAudioProcessor::updateLEDs(float leftLevel, float rightLevel) {
-    if (ledComm) {
-        ledComm->setBrightness(leftLevel, rightLevel, apvts.getRawParameterValue("Brightness")->load());
-    }
+  leftChannelFifo.process(buffer);
+  rightChannelFifo.process(buffer);
 }
 
 bool AudioPluginAudioProcessor::hasEditor() const {
@@ -217,6 +230,7 @@ bool AudioPluginAudioProcessor::hasEditor() const {
 
 juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor() {
   return new AudioPluginAudioProcessorEditor(*this);
+  // return new juce::GenericAudioProcessorEditor(*this);
 }
 
 void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
@@ -224,37 +238,77 @@ void AudioPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
   // You could do that either as raw data, or use the XML or ValueTree classes
   // as intermediaries to make it easy to save and load complex data.
   juce::MemoryOutputStream mos(destData, true);
-  apvts.state.writeToStream(mos);
+  // apvts.state.writeToStream(mos);
   // juce::ignoreUnused(destData);
 }
 
-void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
-{
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
-    auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
-    if (tree.isValid())
-    {
-        apvts.replaceState(tree);
-    }
+void AudioPluginAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
+  // You should use this method to restore your parameters from this memory
+  // block, whose contents will have been created by the getStateInformation()
+  // call.
+  juce::ignoreUnused(data, sizeInBytes);
+  // auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
+  // if (tree.isValid()) {
+  //   apvts.replaceState(tree);
+  //   updateFilters();
+  // }
 }
 
+// ChainSettings audio_plugin::getChainSettings(juce::AudioProcessorValueTreeState& apvts) {
+//   ChainSettings settings;
 
-juce::AudioProcessorValueTreeState::ParameterLayout
-AudioPluginAudioProcessor::createParameterLayout() {
-  juce::AudioProcessorValueTreeState::ParameterLayout layout;
+//   settings.lowCutFreq = apvts.getRawParameterValue("LowCut Freq")->load();
+//   settings.highCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
+//   settings.peakFreq = apvts.getRawParameterValue("Peak Freq")->load();
+//   settings.peakGainInDecibels = apvts.getRawParameterValue("Peak Gain")->load();
+//   settings.peakQuality = apvts.getRawParameterValue("Peak Quality")->load();
+//   settings.lowCutSlope = static_cast <Slope>(apvts.getRawParameterValue("LowCut Slope")->load());
+//   settings.highCutSlope = static_cast <Slope>(apvts.getRawParameterValue("HighCut Slope")->load());
 
+//   return settings;
+// }
 
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "Brightness", "Brightness", juce::NormalisableRange<float>
-      (0.f, 0.135f, 0.019f, 0.5f), 0.135f));
+// juce::AudioProcessorValueTreeState::ParameterLayout
+// AudioPluginAudioProcessor::createParameterLayout() {
+//   juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-  juce::Array<juce::String> stringArray = {"red", "blue", "green", "yellow"};
-  layout.add(std::make_unique<juce::AudioParameterChoice>(
-      "Color", "Color", stringArray, 3));
+//   layout.add(std::make_unique<juce::AudioParameterFloat>(
+//       "LowCut Freq", "LowCut Freq", juce::NormalisableRange<float>
+//       (20.f, 20000.f, 1.f, 0.25f), 20.f));
+  
+//   layout.add(std::make_unique<juce::AudioParameterFloat>(
+//       "HighCut Freq", "HighCut Freq", juce::NormalisableRange<float>
+//       (20.f, 20000.f, 1.f, 0.25f), 20000.f));
 
-  return layout;
-}
+//   layout.add(std::make_unique<juce::AudioParameterFloat>(
+//       "Peak Freq", "Peak Freq", juce::NormalisableRange<float>
+//       (20.f, 20000.f, 1.f, 0.25f), 750.f));
+
+//   layout.add(std::make_unique<juce::AudioParameterFloat>(
+//       "Peak Gain", "Peak Gain", juce::NormalisableRange<float>
+//       (-24.f, 24.f, 0.5f, 1.f), 0.0f));
+
+//   layout.add(std::make_unique<juce::AudioParameterFloat>(
+//       "Peak Quality", "Peak Quality", juce::NormalisableRange<float>
+//       (0.1f, 10.f, 0.05f, 1.f), 1.f));
+
+  
+//   juce::StringArray stringArray;
+//   for (int i = 0; i < 4; i++) {
+//     juce::String str;
+//     str << (12 + i*12);
+//     str << " db/Oct";
+//     stringArray.add(str);
+//   }
+
+//   layout.add(std::make_unique<juce::AudioParameterChoice>(
+//       "LowCut Slope", "LowCut Slope", stringArray, 0));
+
+//   layout.add(std::make_unique<juce::AudioParameterChoice>(
+//       "HighCut Slope", "HighCut Slope", stringArray, 0));
+
+//   return layout;
+// }
 
 float AudioPluginAudioProcessor::calculateChannelLevel(const juce::AudioBuffer<float>& buffer, int channel)
 {
@@ -263,28 +317,20 @@ float AudioPluginAudioProcessor::calculateChannelLevel(const juce::AudioBuffer<f
         
     auto* channelData = buffer.getReadPointer(channel);
     float sum = 0.0f;
-    float peakLevel = 0.0f;
     
-    // Calculate both RMS and peak levels
+    // Calculate RMS (Root Mean Square) level
     for (int i = 0; i < buffer.getNumSamples(); ++i)
     {
-        float sample = std::abs(channelData[i]);
+        float sample = channelData[i];
         sum += sample * sample;
-        peakLevel = std::max(peakLevel, sample);
     }
     
     float rms = std::sqrt(sum / buffer.getNumSamples());
     
-    // For a sine wave at 0dB (peak = 1.0), RMS is approximately 0.707 (1/√2)
-    // We'll normalize RMS relative to this value
-    float normalizedRMS = rms / 0.707f;
-    
-    // Use the maximum of normalized RMS and peak for the final level
-    float level = std::max(normalizedRMS, peakLevel);
-
-    // Ensure we don't exceed 1.0
-    // std::cout << "level: " << juce::jlimit(0.0f, 1.0f, level) << std::endl;
-    return juce::jlimit(0.0f, 1.0f, level);
+    // Convert to decibels and normalize to 0.0-1.0 range for visualization
+    // -60dB to 0dB mapped to 0.0 to 1.0
+    float db = juce::Decibels::gainToDecibels(rms, -60.0f);
+    return juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 60.0f);
 }
 
 }  // namespace audio_plugin
