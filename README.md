@@ -69,7 +69,7 @@ This audio plugin provides real-time visualization of audio signals through WS28
 2. **JUCE Setup**
    ```bash
    # Clone JUCE
-   git clone https://github.com/AmitShomrat/You-see-what-you-hear.git
+   git clone https://github.com/juce-framework/JUCE.git
    
    # Set up Projucer
    # Configure paths in Visual Studio
@@ -78,7 +78,7 @@ This audio plugin provides real-time visualization of audio signals through WS28
 3. **Project Setup**
    ```bash
    # Clone the repository
-   git clone [your-repo-url]
+   git clone https://github.com/AmitShomrat/You-see-what-you-hear.git
    
    # Open in Visual Studio
    # Build the solution
