@@ -141,4 +141,4 @@ This audio plugin provides real-time visualization of audio signals through WS28
 - FastLED library for LED control
 
 ## Acknowledgments
-Special thanks to MatKat Music for providing the SimpleEQ infrastructure that served as the foundation for this project.
+Special thanks to [@matkatmusic](https://github.com/matkatmusic) for providing the SimpleEQ infrastructure that served as the foundation for this project.
