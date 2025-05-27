@@ -1,0 +1,1 @@
+cmake --build vs-build --config Debug

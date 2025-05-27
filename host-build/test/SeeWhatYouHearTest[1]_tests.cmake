@@ -1,0 +1,7 @@
+add_test([=[AudioProcessor.Foo]=]  C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/test/Debug/SeeWhatYouHearTest.exe [==[--gtest_filter=AudioProcessor.Foo]==] --gtest_also_run_disabled_tests)
+set_tests_properties([=[AudioProcessor.Foo]=]  PROPERTIES WORKING_DIRECTORY C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/test SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
+add_test([=[CutSlopeTest.GeneratesCutSlopeStringsCorrectly]=]  C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/test/Debug/SeeWhatYouHearTest.exe [==[--gtest_filter=CutSlopeTest.GeneratesCutSlopeStringsCorrectly]==] --gtest_also_run_disabled_tests)
+set_tests_properties([=[CutSlopeTest.GeneratesCutSlopeStringsCorrectly]=]  PROPERTIES WORKING_DIRECTORY C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/test SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
+add_test([=[CutSlopeTest.ValidatesSlopeValues]=]  C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/test/Debug/SeeWhatYouHearTest.exe [==[--gtest_filter=CutSlopeTest.ValidatesSlopeValues]==] --gtest_also_run_disabled_tests)
+set_tests_properties([=[CutSlopeTest.ValidatesSlopeValues]=]  PROPERTIES WORKING_DIRECTORY C:/Users/amit5/Desktop/AUDIO_PRO/audio-plugin-template/host-build/test SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
+set(  SeeWhatYouHearTest_TESTS AudioProcessor.Foo CutSlopeTest.GeneratesCutSlopeStringsCorrectly CutSlopeTest.ValidatesSlopeValues)

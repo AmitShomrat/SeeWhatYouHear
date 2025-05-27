@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\libs\juce\modules\juce_audio_plugin_client\VST3\juce_VST3ManifestHelper.cpp">
+      <Filter>libs\juce\modules\juce_audio_plugin_client\VST3</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\amit5\Desktop\AUDIO_PRO\audio-plugin-template\plugin\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="libs">
+      <UniqueIdentifier>{956770DF-0308-32D1-9C16-AE327F3F74AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libs\juce">
+      <UniqueIdentifier>{ED9935AA-E4E3-39D7-B756-DA9296763501}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libs\juce\modules">
+      <UniqueIdentifier>{739CB537-4B59-3E00-AC11-2C641EB7A616}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libs\juce\modules\juce_audio_plugin_client">
+      <UniqueIdentifier>{DBA9573F-59E1-301D-9BDE-3CEC05FEFD1C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libs\juce\modules\juce_audio_plugin_client\VST3">
+      <UniqueIdentifier>{E7017F9C-4498-3706-BF5E-5CC85511555F}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
