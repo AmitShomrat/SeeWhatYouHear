@@ -1,4 +1,4 @@
-#include <SeeWhatYouHear/PluginProcessor.h>
+#include <SimpleEQ/PluginProcessor.h>
 #include <gtest/gtest.h>
 
 namespace audio_plugin_test {

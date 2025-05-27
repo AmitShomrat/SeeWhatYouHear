@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.22)
 
 # Version is needed by JUCE.
-project(SeeWhatYouHear VERSION 0.1.0)
+project(AudioPlugin VERSION 0.1.0)
 
 # Adding a directory with the library/application name as a subfolder of the
 # include folder is a good practice. It helps avoid name clashes later on.
-set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/SeeWhatYouHear")
+set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/SimpleEQ")
 
 # Adds a plugin target (that's basically what the Projucer does).
 juce_add_plugin(${PROJECT_NAME}
@@ -14,27 +14,20 @@ juce_add_plugin(${PROJECT_NAME}
     NEEDS_MIDI_INPUT FALSE # may change this
     NEEDS_MIDI_OUTPUT FALSE # may change this
     PLUGIN_MANUFACTURER_CODE MCMP # change this
-    PLUGIN_CODE SWYH # change this to match new name
+    PLUGIN_CODE EXPL # change this
     FORMATS Standalone VST3 # may change this
-    PRODUCT_NAME "SeeWhatYouHear" # change this
-    VST3_COPY_DIR "$ENV{COMMONPROGRAMFILES}/VST3" # Use environment variable for VST3 path
+    PRODUCT_NAME "SimpleEQ" # change this
+    VST3_COPY_DIR "C:/Program Files/Common Files/VST3" # change this to env s.t others will change it
     COPY_PLUGIN_AFTER_BUILD TRUE
 )
 
 # Sets the source files of the plugin project.
 target_sources(${PROJECT_NAME}
     PRIVATE
-        source/ColorDecisionML.cpp
-        source/FFTProcessor.cpp
-        source/LEDCommunication.cpp
         source/PluginEditor.cpp
         source/PluginProcessor.cpp
         ${INCLUDE_DIR}/PluginEditor.h
         ${INCLUDE_DIR}/PluginProcessor.h
-        ${INCLUDE_DIR}/LEDCommunication.h
-        ${INCLUDE_DIR}/CommonDef.h
-        ${INCLUDE_DIR}/FFTProcessor.h
-        ${INCLUDE_DIR}/ColorDecisionML.h
 )
 
 # Sets the include directories of the plugin project.

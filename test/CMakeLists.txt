@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(SeeWhatYouHearTest)
+project(AudioPluginTest)
 
 # Signals to CMake that we want to run tests from this directory.
 enable_testing()
@@ -17,11 +17,10 @@ target_include_directories(${PROJECT_NAME}
         ${JUCE_SOURCE_DIR}/modules
         ${GOOGLETEST_SOURCE_DIR}/googletest/include)
 
-# Add JUCE core module
+# Thanks to the fact that we link against the gtest_main library, we don't have to write the main function ourselves.
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-        juce::juce_core
-        SeeWhatYouHear
+        AudioPlugin
         GTest::gtest_main)
 
 # Enables all warnings and treats warnings as errors.

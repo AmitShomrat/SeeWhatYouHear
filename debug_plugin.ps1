@@ -9,7 +9,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "Build successful! Launching AudioPluginHost..." -ForegroundColor Green
     
     # Path to AudioPluginHost and filtergraph
-    $hostPath = "$PSScriptRoot\AudioFilePlayer\build\_deps\juce-build\extras\AudioPluginHost\AudioPluginHost_artefacts\Debug\AudioPluginHost.exe"
+    $hostPath = "$PSScriptRoot\AudioFilePlayer\build-host\AudioPluginHost_build\AudioPluginHost_artefacts\Debug\AudioPluginHost.exe"
     $graphPath = "$PSScriptRoot\Plug-in-host-preset.filtergraph"
     
     # Check if files exist
