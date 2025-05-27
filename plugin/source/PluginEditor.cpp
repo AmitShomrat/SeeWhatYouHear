@@ -352,8 +352,8 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
   return bounds;
 }
 
-LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication>& comm)
-    : processorRef(p), ledComm(comm), leftColorDecisionML(p.leftColorDecisionML), rightColorDecisionML(p.rightColorDecisionML)
+LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p)
+    : processorRef(p), leftColorDecisionML(p.leftColorDecisionML), rightColorDecisionML(p.rightColorDecisionML)
 {
     startTimerHz(60);
 }
@@ -398,8 +398,8 @@ void LEDSimulator::paint(juce::Graphics& g)
     // std::cout << "leftRGB: " << static_cast<int>(leftLedColor.getRed()) << " " << static_cast<int>(leftLedColor.getGreen()) << " " << static_cast<int>(leftLedColor.getBlue()) << std::endl;
     // std::cout << "rightRGB: " << static_cast<int>(rightLedColor.getRed()) << " " << static_cast<int>(rightLedColor.getGreen()) << " " << static_cast<int>(rightLedColor.getBlue()) << std::endl;
     // Draw LEDs
-    drawLED(g, leftLedArea, leftLevelSmoothed, leftLedColor);
-    drawLED(g, rightLedArea, rightLevelSmoothed, rightLedColor);
+    drawLED(g, leftLedArea, leftChannelLevel, leftLedColor);
+    drawLED(g, rightLedArea, rightChannelLevel, rightLedColor);
     // Update physical LED color
     // ledComm->setColor(color);
 
@@ -423,51 +423,24 @@ void LEDSimulator::resized()
 
 void LEDSimulator::timerCallback()
 {
-    // Get channel levels
-    float targetLeftLevel = processorRef.leftChannelLevel.get();
-    float targetRightLevel = processorRef.rightChannelLevel.get();
-    float userBrightness = processorRef.apvts.getRawParameterValue("Brightness")->load();
-    
-    // Apply smoothing to levels
-    const float smoothingCoeff = 0.9f; //Higher = Fast response, Lower = Slow response.
-    leftLevelSmoothed = leftLevelSmoothed + smoothingCoeff * (targetLeftLevel - leftLevelSmoothed);
-    rightLevelSmoothed = rightLevelSmoothed + smoothingCoeff * (targetRightLevel - rightLevelSmoothed);
-    
-    // Only bypass step 0
-    float userBrightnessScale = 0.0f;
-    if (userBrightness >= 0.019f) {  // Start from step 1
-        // Rescale to ensure step 1 is visible
-        userBrightnessScale = juce::jmap(userBrightness, 
-                                   0.019f, 0.135f,  // Input range: from step 1 to max
-                                   0.2f, 1.0f);     // Output range: start at 20% brightness
-    }
-    
-    // Apply brightness scaling to smoothed levels
-    leftLevelSmoothed *= userBrightnessScale;
-    rightLevelSmoothed *= userBrightnessScale;
-    
+    auto newLeftBrightness = processorRef.getBrightnessDecision().getLeftBrightness();
+    auto newRightBrightness = processorRef.getBrightnessDecision().getRightBrightness();
     // Get current RGB values
     RGB leftRGB = leftColorDecisionML.getCurrentRGB();
     RGB rightRGB = rightColorDecisionML.getCurrentRGB();
     
     // Check for any changes in brightness or color
     bool needsRepaint = false;
-    
-    // Check brightness changes
-    if (std::abs(leftLevelSmoothed - leftChannelLevel) > 0.01f || 
-        std::abs(rightLevelSmoothed - rightChannelLevel) > 0.01f) {
+
+    if (std::abs(newLeftBrightness.get() - leftChannelLevel) > 0.01f || std::abs(newRightBrightness.get() - rightChannelLevel) > 0.01f  
+                                                               || currentLeftRGB != leftRGB || currentRightRGB != rightRGB) 
+    {
         needsRepaint = true;
     }
-    
-    // Check color changes
-    if (currentLeftRGB != leftRGB || currentRightRGB != rightRGB) {
-        needsRepaint = true;
-    }
-    
-    // Update values and repaint if needed
+
     if (needsRepaint) {
-        leftChannelLevel = leftLevelSmoothed;
-        rightChannelLevel = rightLevelSmoothed;
+        leftChannelLevel = newLeftBrightness.get();
+        rightChannelLevel = newRightBrightness.get();
         currentLeftRGB = leftRGB;
         currentRightRGB = rightRGB;
         repaint();
@@ -557,11 +530,11 @@ void LEDSimulator::drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, flo
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
     : juce::AudioProcessorEditor(&p), 
       processorRef(p),
-      ledComm(p.getLEDCommunication()),
+      ledComm(p.getLEDCommunication()), // Remove the Ledcomm.
       brightnessSlider(*processorRef.apvts.getParameter("Brightness"), ""),
       colorSlider(*processorRef.apvts.getParameter("Color"), ""),
       responseCurveComponent(p),
-      ledSimulator(p, ledComm),
+      ledSimulator(p),
       brightnessSliderAttachment(processorRef.apvts, "Brightness", brightnessSlider),
       colorSliderAttachment(processorRef.apvts, "Color", colorSlider)
 {

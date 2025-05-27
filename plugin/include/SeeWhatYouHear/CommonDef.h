@@ -153,4 +153,36 @@ private:
   }  
 };
 
+struct BrightnessDecision
+{
+    juce::Atomic<float> getLeftBrightness() const { return leftBrightness.get(); }
+    juce::Atomic<float> getRightBrightness() const { return rightBrightness.get(); }
+  
+    void computeBrightness(float leftLevel, float rightLevel, float userBrightness){
+            // Apply smoothing to levels
+      const float smoothingCoeff = 0.9f; //Higher = Fast response, Lower = Slow response.
+      leftBrightness.set(leftBrightness.get() + smoothingCoeff * (leftLevel - leftBrightness.get()));
+      rightBrightness.set(rightBrightness.get() + smoothingCoeff * (rightLevel - rightBrightness.get()));
+
+      // Only bypass step 0
+      float userBrightnessScale = 0.0f;
+      if (userBrightness >= 0.019f) {  // Start from step 1
+          // Rescale to ensure step 1 is visible
+          userBrightnessScale = juce::jmap(userBrightness, 
+                                    0.019f, 0.135f,  // Input range: from step 1 to max
+                                    0.2f, 1.0f);     // Output range: start at 20% brightness
+      }
+
+      // Apply brightness scaling to smoothed levels
+      leftBrightness.set(leftBrightness.get() * userBrightnessScale);
+      rightBrightness.set(rightBrightness.get() * userBrightnessScale);
+      std::cout << "leftBrightness: " << leftBrightness.get() << " rightBrightness: " << rightBrightness.get() << std::endl;
+    }
+    
+  private:
+    // The returned values.
+    juce::Atomic<float> leftBrightness{0.0f};
+    juce::Atomic<float> rightBrightness{0.0f};
+};
+
 } // namespace audio_plugin

@@ -165,7 +165,7 @@ juce::AudioProcessorParameter::Listener, juce::Timer
 // Add LEDSimulator component
 struct LEDSimulator : juce::Component, juce::Timer
 {
-    LEDSimulator(AudioPluginAudioProcessor& p, std::shared_ptr<LEDCommunication>& ledComm);
+    LEDSimulator(AudioPluginAudioProcessor& p);
     ~LEDSimulator() override;
     
     void paint(juce::Graphics& g) override;
@@ -174,16 +174,12 @@ struct LEDSimulator : juce::Component, juce::Timer
     juce::Rectangle<float> getLEDArea();
 private:
     AudioPluginAudioProcessor& processorRef;
-    std::shared_ptr<LEDCommunication> ledComm;
     float leftChannelLevel = {0.0f};
     float rightChannelLevel = {0.0f};
     ColorDecisionML& leftColorDecisionML;
     ColorDecisionML& rightColorDecisionML;
     RGB currentLeftRGB{/*RGB{0, 0, 0}*/};
     RGB currentRightRGB{/*RGB{0, 0, 0}*/};
-    // Smoothing variables
-    float leftLevelSmoothed = {0.0f};
-    float rightLevelSmoothed = {0.0f};
     
     void drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, float brightness, juce::Colour color);
 };

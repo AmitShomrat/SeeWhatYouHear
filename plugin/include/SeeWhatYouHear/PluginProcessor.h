@@ -50,6 +50,9 @@ public:
   juce::AudioProcessorValueTreeState apvts{*this, nullptr, "PARAMETERS",
                                           createParameterLayout()};
 
+  BrightnessDecision getBrightnessDecision() const { return brightnessDecision; }
+
+  
   //Shared instances:
   SingleChannelSampleFifo<float> leftChannelFifo{Channel::Left};                                        
   SingleChannelSampleFifo<float> rightChannelFifo{Channel::Right};
@@ -85,6 +88,9 @@ public:
   float calculateChannelLevel(const juce::AudioBuffer<float>& buffer, int channel);
 
 private:
+  BrightnessDecision brightnessDecision;
+
+
   // Audio file playback members
   juce::AudioFormatManager formatManager;
   std::unique_ptr<juce::AudioFormatReader> formatReader;

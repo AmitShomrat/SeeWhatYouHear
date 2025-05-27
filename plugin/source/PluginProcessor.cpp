@@ -168,6 +168,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     }
 
     // juce::dsp::AudioBlock<float> block(buffer);
+
     // ======================================Check freqs with osc======================================
     // buffer.clear();
     
@@ -188,6 +189,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     //     leftOsc.setFrequency(freq);
     //     rightOsc.setFrequency(freq /* 1.01f*/);
     // }
+
     // ======================================Check freqs with osc======================================
 
     // Update the channel levels
@@ -200,6 +202,8 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     if (ledComm) {
         ledComm->setBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
     }
+
+    brightnessDecision.computeBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
 
     leftChannelFifo.process(buffer);
     rightChannelFifo.process(buffer);
