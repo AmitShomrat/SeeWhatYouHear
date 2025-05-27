@@ -140,11 +140,5 @@ This audio plugin provides real-time visualization of audio signals through WS28
 - JUCE Framework for audio processing
 - FastLED library for LED control
 
-## License
-[Your License Information]
-
 ## Acknowledgments
 Special thanks to MatKat Music for providing the SimpleEQ infrastructure that served as the foundation for this project.
-
-## Contact
-[Your Contact Information]
