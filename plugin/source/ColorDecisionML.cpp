@@ -10,9 +10,8 @@ ColorDecisionML::ColorDecisionML(const int fftSize)
     fftData.resize(fftSize, 0.0f);
 }
 
-void ColorDecisionML::process(std::vector<float>& newFftData, const float newSampleRate) {
+void ColorDecisionML::process(std::vector<float>& newFftData) {
     fftData = newFftData;
-    sampleRate = newSampleRate;
     currentFeatures = extractFeatures(fftData, sampleRate);
     
     // Get new RGB values from feature mapping
@@ -57,7 +56,8 @@ RGB ColorDecisionML::getCurrentRGB() const {
     return rgb;
 }
 
-float ColorDecisionML::findPeakFrequency(const std::vector<float>& inputData, float inputSampleRate) {
+// Not in use
+float ColorDecisionML::findPeakFrequency(const std::vector<float>& inputData) {
     int maxBin = 0;
     float maxMagnitude = 0.0f;
     
@@ -69,7 +69,7 @@ float ColorDecisionML::findPeakFrequency(const std::vector<float>& inputData, fl
         }
     }
     
-    return (maxBin * inputSampleRate) / (inputData.size());
+    return (maxBin * sampleRate) / (inputData.size());
 }
 
 float ColorDecisionML::calculateBandEnergy(const std::vector<float>& inputData, 

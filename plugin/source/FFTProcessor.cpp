@@ -37,7 +37,7 @@ void FFTProcessor::process() {
     // Color decision ML calculations using linear magnitudes
     std::vector<float> linearMagnitudes;
     if (monoChannelFFTDataGenerator.getLinearMagnitudes(linearMagnitudes)) {
-        colorDecisionML.process(linearMagnitudes, static_cast<float>(sampleRate));
+        colorDecisionML.process(linearMagnitudes);
     }
 }
 } // namespace audio_plugin 

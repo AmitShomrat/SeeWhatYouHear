@@ -167,7 +167,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         buffer.clear(i, 0, buffer.getNumSamples());
     }
 
-    juce::dsp::AudioBlock<float> block(buffer);
+    // juce::dsp::AudioBlock<float> block(buffer);
     // ======================================Check freqs with osc======================================
     // buffer.clear();
     
@@ -196,7 +196,7 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     if (totalNumInputChannels >= 2)
         rightChannelLevel.set(calculateChannelLevel(buffer, 1));
 
-    // updateFilters();
+    // Update LED communication with current levels
     if (ledComm) {
         ledComm->setBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
     }

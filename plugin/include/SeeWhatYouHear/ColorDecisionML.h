@@ -16,7 +16,7 @@ public:
     ~ColorDecisionML() = default;
 
     // Main processing function - now just processes the FIFO data
-    void process(std::vector<float>& newFftData, const float newSampleRate);
+    void process(std::vector<float>& newFftData);
     
     // Get the current RGB color based on the latest features
     RGB getCurrentRGB() const;
@@ -62,11 +62,8 @@ private:
     float calculateSpectralSpread(const std::vector<float>& inputData, float centroid, float sr);
     float calculateSpectralFlux(const std::vector<float>& currentData, const std::vector<float>& prevData);
     float freqToFFTBin(float freq, float sr, int fftSize) const;
-    float findPeakFrequency(const std::vector<float>& inputData, float sr);
+    float findPeakFrequency(const std::vector<float>& inputData);
     
-    // Helper function to determine RGB based on features
-    RGB determineRGB(const Features& features) const;
-
     // Helper functions for color mapping
     float normalizeValue(float value, float min, float max) const;
     

@@ -126,7 +126,7 @@ struct SingleChannelSampleFifo
     fifoIndex = 0;
     prepared.set(true);
   }
-  
+  Channel getChannel() const { return channelToUse; }
   int getNumCompleteBuffersAvailable() const { return audioBufferFifo.getNumAvailableForReading(); }
   bool isPrepared() const { return prepared.get(); }
   int getSize() const { return size.get(); }
