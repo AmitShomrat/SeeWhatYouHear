@@ -5,8 +5,8 @@
 
 namespace audio_plugin {
 
-LEDCommunication::LEDCommunication() 
-    : juce::Thread("LEDCommunicationThread"), portName("COM3"),
+LEDCommunication::LEDCommunication(AudioPluginAudioProcessor* processor) 
+    : juce::Thread("LEDCommunicationThread"), portName("COM3"), processorPointer(processor),
       hserial(INVALID_HANDLE_VALUE)
 {   
     ledData.resize(numLEDs * 3 + 1 + 2);
@@ -60,9 +60,6 @@ int LEDCommunication::setBrightness(float monoBrightness)
 
 void LEDCommunication::prepareData(RGB rgbLeftValues, RGB rgbRightValues)
 {
-    // // Scale RGB values by brightness
-    // float leftScale = static_cast<float>(currentLeftBrightness.load()) / 255.0f;
-    // float rightScale = static_cast<float>(currentRightBrightness.load()) / 255.0f;
     if (processorPointer) {
         currentLeftBrightness.store(setBrightness(processorPointer->getBrightnessDecision().getLeftBrightness().get()));
         currentRightBrightness.store(setBrightness(processorPointer->getBrightnessDecision().getRightBrightness().get()));

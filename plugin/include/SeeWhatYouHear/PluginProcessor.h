@@ -47,25 +47,6 @@ public:
 
   static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
-  juce::AudioProcessorValueTreeState apvts{*this, nullptr, "PARAMETERS",
-                                          createParameterLayout()};
-
-  BrightnessDecision getBrightnessDecision() const { return brightnessDecision; }
-
-  ColorDecisionML& getLeftColorDecisionML() { return leftColorDecisionML; }
-  ColorDecisionML& getRightColorDecisionML() { return rightColorDecisionML; }
-
-
-  //Shared instances:
-  SingleChannelSampleFifo<float> leftChannelFifo{Channel::Left};                                        
-  SingleChannelSampleFifo<float> rightChannelFifo{Channel::Right};
-
-  std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
-  std::shared_ptr<FFTProcessor> rightChannelFFTProcessor;
-
-  
-  std::shared_ptr<LEDCommunication> ledComm;
-
   // Audio file loading and playback methods
   bool loadFile(const juce::String& path);
   bool isFileLoaded() const { return fileLoaded; }
@@ -76,15 +57,34 @@ public:
   void startPlayback();
   void stopPlayback();
   bool isPlaying() const { return playing; }
+  
+  // get methods
+  BrightnessDecision getBrightnessDecision() const { return brightnessDecision; }
+  ColorDecisionML& getLeftColorDecisionML() { return leftColorDecisionML; }
+  ColorDecisionML& getRightColorDecisionML() { return rightColorDecisionML; }
+
+  juce::AudioProcessorValueTreeState apvts{*this, nullptr, "PARAMETERS",createParameterLayout()};
+  
+  //Shared instances:
+  SingleChannelSampleFifo<float> leftChannelFifo{Channel::Left};                                        
+  SingleChannelSampleFifo<float> rightChannelFifo{Channel::Right};
+
+  std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
+  std::shared_ptr<FFTProcessor> rightChannelFFTProcessor;
+
 
   // Add channel level tracking
   juce::Atomic<float> leftChannelLevel{0.0f};
   juce::Atomic<float> rightChannelLevel{0.0f};
   
   // Helper to calculate channel level
-  float calculateChannelLevel(const juce::AudioBuffer<float>& buffer, int channel);
 
 private:
+  // processHelper methods
+  float calculateChannelLevel(const juce::AudioBuffer<float>& buffer, int channel);
+
+  // private instances
+  std::unique_ptr<LEDCommunication> ledComm;
   BrightnessDecision brightnessDecision;
 
   ColorDecisionML leftColorDecisionML;

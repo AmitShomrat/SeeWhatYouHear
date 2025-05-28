@@ -17,11 +17,9 @@ class AudioPluginAudioProcessor;
 
 class LEDCommunication : public juce::Thread {
   public:
-    LEDCommunication();
+    LEDCommunication(AudioPluginAudioProcessor* processor);
     ~LEDCommunication();
-    void run() override;
-    void setColor(Color c) { currentColor.store(c); }
-    
+    void run() override;    
     // Add connection state query
     bool isConnected() const { return isPortConnected.load(); }
     
@@ -31,30 +29,22 @@ class LEDCommunication : public juce::Thread {
         shouldReconnect.store(true);
     }
 
-    // void setBrightness(float leftBrightness, float rightBrightness, float userBrightness);
     AudioPluginAudioProcessor* processorPointer = nullptr;
   private:
     int setBrightness(float monoBrightness);
     void prepareData(RGB rgbLeftValues, RGB rgbRightValues);
-    bool tryConnect();
     
-    juce::String portName;
-    const int numLEDs = 300;
-    std::vector<unsigned char> ledData; 
-    HANDLE hserial;
-
-    std::atomic<Color> currentColor{Color::Yellow};
-    RGB constRGB{RGB{255, 0, 0}};
-
     std::atomic<int> currentLeftBrightness{0};
     std::atomic<int> currentRightBrightness{0};
     std::atomic<bool> isPortConnected{false};
     std::atomic<bool> shouldReconnect{false};
 
-
-    // BrightnessDecision& brightnessDecision;
-    // ColorDecisionML& leftColorDecisionML;
-    // ColorDecisionML& rightColorDecisionML;
+    // Serial port connection
+    bool tryConnect();
+    juce::String portName;
+    const int numLEDs = 300;
+    std::vector<unsigned char> ledData; 
+    HANDLE hserial;
 
     // Connection retry parameters
     static constexpr int RETRY_INTERVAL_MS = 5000; // 5 seconds between retries

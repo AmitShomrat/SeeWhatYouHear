@@ -386,10 +386,6 @@ void LEDSimulator::paint(juce::Graphics& g)
     // Create LED areas
     auto leftLedArea = bounds.withX(leftLabelArea.getRight()).withWidth(ledWidth);
     auto rightLedArea = bounds.withX(bounds.getRight() - labelWidth - ledWidth).withWidth(ledWidth);
-  
-    // Get RGB values from ColorDecisionML
-    // RGB leftRGB = leftColorDecisionML.getCurrentRGB();
-    // RGB rightRGB = rightColorDecisionML.getCurrentRGB();
     
     // Create LED colors with proper uint8_t casting
     juce::Colour leftLedColor = juce::Colour::fromRGB(static_cast<uint8_t>(currentLeftRGB.r), static_cast<uint8_t>(currentLeftRGB.g), static_cast<uint8_t>(currentLeftRGB.b));
@@ -400,12 +396,9 @@ void LEDSimulator::paint(juce::Graphics& g)
     // Draw LEDs
     drawLED(g, leftLedArea, leftChannelLevel, leftLedColor);
     drawLED(g, rightLedArea, rightChannelLevel, rightLedColor);
-    // Update physical LED color
-    // ledComm->setColor(color);
 
     // Draw labels
     // Use a simpler font approach
-
     g.setFont(bounds.getHeight() * 0.3f);
     g.setColour(juce::Colours::white);
     

@@ -15,12 +15,9 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
       ),
       leftColorDecisionML(1 << order2048),
       rightColorDecisionML(1 << order2048),
-      /*ledComm(std::make_shared<audio_plugin::LEDCommunication>(this)),*/
+      ledComm(std::make_unique<audio_plugin::LEDCommunication>(this)),
       leftChannelFFTProcessor(std::make_shared<FFTProcessor>(leftChannelFifo, leftColorDecisionML)),
       rightChannelFFTProcessor(std::make_shared<FFTProcessor>(rightChannelFifo, rightColorDecisionML)) {
-    // Setup debug logging
-    ledComm = std::make_shared<audio_plugin::LEDCommunication>();
-    ledComm->processorPointer = this;
     #if JUCE_DEBUG
         // Create a log file in the user's documents directory
         auto logFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
