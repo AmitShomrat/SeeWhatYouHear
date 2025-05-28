@@ -10,7 +10,7 @@ void FFTProcessor::run() {
 
 void FFTProcessor::process() {
     if (threadShouldExit()) return;
-    
+    // Preform this process function for both channels. (refactor this)
     juce::AudioBuffer<float> tempIncomingBuffer;
     while (monoChannelFifo->getNumCompleteBuffersAvailable() > 0) {
         if (monoChannelFifo->getAudioBuffer(tempIncomingBuffer)) {
@@ -29,12 +29,13 @@ void FFTProcessor::process() {
             std::memcpy(destData + (monoBuffer.getNumSamples() - size),
                        sourceData,
                        size * sizeof(float));
-                       
+           
             monoChannelFFTDataGenerator.produceFFTDataForRendering(monoBuffer, -48.f);
         }
     }
 
     // Color decision ML calculations using linear magnitudes
+    // TODO: modify the colorDecisionML process to work on both channels.
     std::vector<float> linearMagnitudes;
     if (monoChannelFFTDataGenerator.getLinearMagnitudes(linearMagnitudes)) {
         colorDecisionML.process(linearMagnitudes);

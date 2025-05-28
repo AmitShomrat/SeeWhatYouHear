@@ -154,13 +154,14 @@ void ResponseCurveComponent::parameterValueChanged (int parameterIndex, float ne
 ResponseCurveComponent::~ResponseCurveComponent() {}
 void PathProducer::process(juce::Rectangle<float> fftBounds, double sampleRate) 
 {
+    // TODO: modify the process function, all instances of FFTProcessor should be removed.
     juce::ignoreUnused(fftBounds, sampleRate);  // Add this line to fix the warning
-    while(leftChannelFFTProcessor-> isAvailable())//Consuming FFTData blocks in order to generate a path.
+    while(monoChannelFFTProcessor-> isAvailable())//Consuming FFTData blocks in order to generate a path.
     {
       std::vector<float> fftData;
-      auto fftSize = leftChannelFFTProcessor -> getFFTSize();
-      auto binWidth = leftChannelFFTProcessor -> getFFTBinWidth();
-      if(leftChannelFFTProcessor-> getLatestFFTData(fftData))
+      auto fftSize = monoChannelFFTProcessor -> getFFTSize();
+      auto binWidth = monoChannelFFTProcessor -> getFFTBinWidth();
+      if(monoChannelFFTProcessor-> getLatestFFTData(fftData))
       {
         pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
       }
@@ -353,7 +354,7 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
 }
 
 LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p)
-    : processorRef(p)/*, leftColorDecisionML(p.getLeftColorDecisionML()), rightColorDecisionML(p.getRightColorDecisionML())*/
+    : processorRef(p)
 {
     startTimerHz(60);
 }
@@ -418,7 +419,8 @@ void LEDSimulator::timerCallback()
 {
     auto newLeftBrightness = processorRef.getBrightnessDecision().getLeftBrightness();
     auto newRightBrightness = processorRef.getBrightnessDecision().getRightBrightness();
-    // Get current RGB values
+    
+    // TODO: ColorDecision will remove to FFTProcessor invoke an appropriate chain of get methods.
     RGB leftRGB = processorRef.getLeftColorDecisionML().getCurrentRGB();
     RGB rightRGB = processorRef.getRightColorDecisionML().getCurrentRGB();
     

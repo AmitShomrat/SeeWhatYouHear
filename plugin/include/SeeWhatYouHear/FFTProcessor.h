@@ -86,12 +86,9 @@ private:
 
 class FFTProcessor : juce::Thread {
 public:
-
+    //TODO: modify the constructor and appropriate initilize the FFT from audioProcessor.
     FFTProcessor(SingleChannelSampleFifo<float>& scsf, ColorDecisionML& colorDecisionML) 
-        : juce::Thread("FFTProcessorThread")
-        , monoChannelFifo(&scsf)
-        , monoChannelFFTDataGenerator()
-        , colorDecisionML(colorDecisionML)
+        : juce::Thread("FFTProcessorThread"), monoChannelFifo(&scsf), colorDecisionML(colorDecisionML)
     {
         monoChannelFFTDataGenerator.changeOrder(FFTOrder::order2048);
         monoBuffer.setSize(1, monoChannelFFTDataGenerator.getFFTSize());
@@ -107,12 +104,14 @@ public:
     bool isAvailable() const {return monoChannelFFTDataGenerator.getNumAvailableFFTDataBlocks() > 0;}
     bool getLatestFFTData(std::vector<float>& fftData) {return monoChannelFFTDataGenerator.getFFTData(fftData);}
     int getFFTSize() const {return monoChannelFFTDataGenerator.getFFTSize();}
+    //TODO: Add get methods for colorDecisionML both channels.
 private:
+    //TODO: Double for both channels all members. colorDecisionML should be unique_ptr.
     SingleChannelSampleFifo<float>* monoChannelFifo;
     FFTDataGenerator<std::vector<float>> monoChannelFFTDataGenerator;
     juce::AudioBuffer<float> monoBuffer;
-    double sampleRate;
     ColorDecisionML& colorDecisionML;
+    double sampleRate;
 
 };
 } // namespace audio_plugin 

@@ -116,12 +116,13 @@ struct RotarySliderWithLabels : juce::Slider {
 };
 
 struct PathProducer {
-  PathProducer(std::shared_ptr<FFTProcessor> fftProcessor) : leftChannelFFTProcessor(fftProcessor){}
+  PathProducer(std::shared_ptr<FFTProcessor> fftProcessor) : monoChannelFFTProcessor(fftProcessor){}
 
   void process(juce::Rectangle<float> fftBounds, double sampleRate);
   juce::Path getPath() {return leftChannelFFTPath;}
   private:
-    std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
+    //TODO: This class might not have the FFTProcessor member. take it from the audioProcessor as you use it.
+    std::shared_ptr<FFTProcessor> monoChannelFFTProcessor;
 
     AnalyzerPathGenerator<juce::Path> pathProducer;
 
