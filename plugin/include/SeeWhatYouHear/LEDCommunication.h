@@ -13,10 +13,11 @@
 #endif
 
 namespace audio_plugin {  // Add namespace to match Color and RGB definitions
+class AudioPluginAudioProcessor;
 
 class LEDCommunication : public juce::Thread {
   public:
-    LEDCommunication(const juce::String& portName, ColorDecisionML& leftColorDecisionML, ColorDecisionML& rightColorDecisionML);
+    LEDCommunication();
     ~LEDCommunication();
     void run() override;
     void setColor(Color c) { currentColor.store(c); }
@@ -30,9 +31,10 @@ class LEDCommunication : public juce::Thread {
         shouldReconnect.store(true);
     }
 
-    void setBrightness(float leftBrightness, float rightBrightness, float userBrightness);
-    
+    // void setBrightness(float leftBrightness, float rightBrightness, float userBrightness);
+    AudioPluginAudioProcessor* processorPointer = nullptr;
   private:
+    int setBrightness(float monoBrightness);
     void prepareData(RGB rgbLeftValues, RGB rgbRightValues);
     bool tryConnect();
     
@@ -48,9 +50,11 @@ class LEDCommunication : public juce::Thread {
     std::atomic<int> currentRightBrightness{0};
     std::atomic<bool> isPortConnected{false};
     std::atomic<bool> shouldReconnect{false};
-    
-    ColorDecisionML& leftColorDecisionML;
-    ColorDecisionML& rightColorDecisionML;
+
+
+    // BrightnessDecision& brightnessDecision;
+    // ColorDecisionML& leftColorDecisionML;
+    // ColorDecisionML& rightColorDecisionML;
 
     // Connection retry parameters
     static constexpr int RETRY_INTERVAL_MS = 5000; // 5 seconds between retries

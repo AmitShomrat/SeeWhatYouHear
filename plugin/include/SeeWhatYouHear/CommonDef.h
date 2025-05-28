@@ -176,7 +176,7 @@ struct BrightnessDecision
       // Apply brightness scaling to smoothed levels
       leftBrightness.set(leftBrightness.get() * userBrightnessScale);
       rightBrightness.set(rightBrightness.get() * userBrightnessScale);
-      std::cout << "leftBrightness: " << leftBrightness.get() << " rightBrightness: " << rightBrightness.get() << std::endl;
+      // std::cout << "leftBrightness: " << leftBrightness.get() << " rightBrightness: " << rightBrightness.get() << std::endl;
     }
     
   private:

@@ -52,7 +52,10 @@ public:
 
   BrightnessDecision getBrightnessDecision() const { return brightnessDecision; }
 
-  
+  ColorDecisionML& getLeftColorDecisionML() { return leftColorDecisionML; }
+  ColorDecisionML& getRightColorDecisionML() { return rightColorDecisionML; }
+
+
   //Shared instances:
   SingleChannelSampleFifo<float> leftChannelFifo{Channel::Left};                                        
   SingleChannelSampleFifo<float> rightChannelFifo{Channel::Right};
@@ -60,13 +63,8 @@ public:
   std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
   std::shared_ptr<FFTProcessor> rightChannelFFTProcessor;
 
-  ColorDecisionML leftColorDecisionML;
-  ColorDecisionML rightColorDecisionML;
   
   std::shared_ptr<LEDCommunication> ledComm;
-  
-  // Add getter for LEDCommunication
-  std::shared_ptr<LEDCommunication> getLEDCommunication() { return ledComm; }
 
   // Audio file loading and playback methods
   bool loadFile(const juce::String& path);
@@ -77,7 +75,6 @@ public:
   bool isLooping() const;
   void startPlayback();
   void stopPlayback();
-  void updateLEDs(float leftLevel, float rightLevel);
   bool isPlaying() const { return playing; }
 
   // Add channel level tracking
@@ -90,6 +87,8 @@ public:
 private:
   BrightnessDecision brightnessDecision;
 
+  ColorDecisionML leftColorDecisionML;
+  ColorDecisionML rightColorDecisionML;
 
   // Audio file playback members
   juce::AudioFormatManager formatManager;

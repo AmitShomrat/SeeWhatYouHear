@@ -353,7 +353,7 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
 }
 
 LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p)
-    : processorRef(p), leftColorDecisionML(p.leftColorDecisionML), rightColorDecisionML(p.rightColorDecisionML)
+    : processorRef(p)/*, leftColorDecisionML(p.getLeftColorDecisionML()), rightColorDecisionML(p.getRightColorDecisionML())*/
 {
     startTimerHz(60);
 }
@@ -426,8 +426,8 @@ void LEDSimulator::timerCallback()
     auto newLeftBrightness = processorRef.getBrightnessDecision().getLeftBrightness();
     auto newRightBrightness = processorRef.getBrightnessDecision().getRightBrightness();
     // Get current RGB values
-    RGB leftRGB = leftColorDecisionML.getCurrentRGB();
-    RGB rightRGB = rightColorDecisionML.getCurrentRGB();
+    RGB leftRGB = processorRef.getLeftColorDecisionML().getCurrentRGB();
+    RGB rightRGB = processorRef.getRightColorDecisionML().getCurrentRGB();
     
     // Check for any changes in brightness or color
     bool needsRepaint = false;
@@ -530,7 +530,6 @@ void LEDSimulator::drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, flo
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor& p)
     : juce::AudioProcessorEditor(&p), 
       processorRef(p),
-      ledComm(p.getLEDCommunication()), // Remove the Ledcomm.
       brightnessSlider(*processorRef.apvts.getParameter("Brightness"), ""),
       colorSlider(*processorRef.apvts.getParameter("Color"), ""),
       responseCurveComponent(p),

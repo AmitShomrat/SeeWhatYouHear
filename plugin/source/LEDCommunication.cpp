@@ -1,12 +1,13 @@
 #include "SeeWhatYouHear/LEDCommunication.h"
+#include "SeeWhatYouHear/PluginProcessor.h"
 #include <windows.h>
 #include <iostream>
 
 namespace audio_plugin {
 
-LEDCommunication::LEDCommunication(const juce::String& portName, ColorDecisionML& leftColorDecisionML, ColorDecisionML& rightColorDecisionML) 
-    : juce::Thread("LEDCommunicationThread"), portName(portName),
-      hserial(INVALID_HANDLE_VALUE), leftColorDecisionML(leftColorDecisionML), rightColorDecisionML(rightColorDecisionML)
+LEDCommunication::LEDCommunication() 
+    : juce::Thread("LEDCommunicationThread"), portName("COM3"),
+      hserial(INVALID_HANDLE_VALUE)
 {   
     ledData.resize(numLEDs * 3 + 1 + 2);
     startThread();
@@ -14,90 +15,71 @@ LEDCommunication::LEDCommunication(const juce::String& portName, ColorDecisionML
 
 LEDCommunication::~LEDCommunication() 
 {
-    stopThread(2000);
     if (hserial != INVALID_HANDLE_VALUE) {
         // Turn off LEDs before closing
         std::cout << "Turning off LEDs before closing." << std::endl;
         prepareData(RGB{0, 0, 0}, RGB{0, 0, 0});
         DWORD bytesWritten;
-        WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL);
+        if (!WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL)) {
+            std::cout << "Failed to write to serial port. Error code: " << GetLastError() << std::endl;
+        }
         CloseHandle(hserial);
+        std::cout << "LEDCommunication destroyed." << std::endl;
     }
+    stopThread(1000);
 }
-void LEDCommunication::setBrightness(float leftBrightness, float rightBrightness, float userBrightness)
+
+int LEDCommunication::setBrightness(float monoBrightness)
 { 
     float leftScaled = 0.0f;
-    float rightScaled = 0.0f;
+
     // Add threshold check for zero values
-    if (std::abs(leftBrightness) < 0.001f) {
+    if (std::abs(monoBrightness) < 0.001f) {
         leftScaled = 0.0f;
     } else {
         // Use decibels scaling with expanded range (-60dB to 0dB)
-        leftScaled = juce::Decibels::decibelsToGain(std::abs(leftBrightness) * 60.0f - 60.0f);
+        leftScaled = monoBrightness;
     }
-
-    if (std::abs(rightBrightness) < 0.001f) {
-        rightScaled = 0.0f;
-    } else {
-        rightScaled = juce::Decibels::decibelsToGain(std::abs(rightBrightness) * 60.0f - 60.0f);
-    }
-
     // Apply power curve for better sensitivity at low levels
-    leftScaled = std::pow(leftScaled, 0.4f);
-    rightScaled = std::pow(rightScaled, 0.4f);
-
-    // Normalize userBrightness to 0-1 range
-    // float normalizedBrightness = userBrightness / 0.135f;
-    
-    float userBrightnessScale = 0.0f;
-    if (userBrightness >= 0.019f) {  // Start from step 1
-        // Rescale to ensure step 1 is visible
-        userBrightnessScale = juce::jmap(userBrightness, 
-                                   0.019f, 0.135f,  // Input range: from step 1 to max
-                                   0.2f, 1.0f);     // Output range: start at 20% brightness
-    }
+    // float memory = 0.9898f sensetive for low values start leds at -40Db due to the totalyzor
+    // float memory2 = 3.0f sensetive for high values start leds at -10Db due to the totalyzor
+    leftScaled = std::pow(leftScaled, 3.0f);
 
     // Map to 0-255 range with threshold at 0.004
     float mappedValueLeft = juce::jmap(
-        leftScaled,
-        juce::Decibels::decibelsToGain(-60.0f),  // input range start
-        juce::Decibels::decibelsToGain(0.0f),    // input range end
-        0.0f,                                    // output range start
-        255.0f                                   // output range end
-    ) * userBrightnessScale;
-
-    float mappedValueRight = juce::jmap(
-        rightScaled,
-        juce::Decibels::decibelsToGain(-60.0f),  // input range start
-        juce::Decibels::decibelsToGain(0.0f),    // input range end
-        0.0f,                                    // output range start
-        255.0f                                   // output range end
-    ) * userBrightnessScale;
+        leftScaled, 
+        0.0f,
+        1.0f,
+        0.0f,
+        255.0f
+    );
 
     // Store the brightness values with threshold applied
-    currentLeftBrightness.store(juce::jlimit(0, 255, static_cast<int>(std::round(mappedValueLeft))));
-    currentRightBrightness.store(juce::jlimit(0, 255, static_cast<int>(std::round(mappedValueRight))));
-    // std::cout << "currentLeftBrightness: " << currentLeftBrightness.load() << std::endl;
-    // std::cout << "currentRightBrightness: " << currentRightBrightness.load() << std::endl;
+    return juce::jlimit(0, 255, static_cast<int>(std::round(mappedValueLeft)));
 }
+
 void LEDCommunication::prepareData(RGB rgbLeftValues, RGB rgbRightValues)
 {
-    // Scale RGB values by brightness
-    float leftScale = static_cast<float>(currentLeftBrightness.load()) / 255.0f;
-    float rightScale = static_cast<float>(currentRightBrightness.load()) / 255.0f;
+    // // Scale RGB values by brightness
+    // float leftScale = static_cast<float>(currentLeftBrightness.load()) / 255.0f;
+    // float rightScale = static_cast<float>(currentRightBrightness.load()) / 255.0f;
+    if (processorPointer) {
+        currentLeftBrightness.store(setBrightness(processorPointer->getBrightnessDecision().getLeftBrightness().get()));
+        currentRightBrightness.store(setBrightness(processorPointer->getBrightnessDecision().getRightBrightness().get()));
+    }
 
-    juce::ignoreUnused(rgbLeftValues, rgbRightValues, leftScale, rightScale);
+    juce::ignoreUnused(rgbLeftValues, rgbRightValues);
     RGB scaledRGBLeft{
-        static_cast<uint8_t>(rgbLeftValues.r * (leftScale)),
-        static_cast<uint8_t>(rgbLeftValues.g * (leftScale)),
-        static_cast<uint8_t>(rgbLeftValues.b * (leftScale))
+        static_cast<uint8_t>(rgbLeftValues.r * (currentLeftBrightness.load() / 255.0f)),
+        static_cast<uint8_t>(rgbLeftValues.g * (currentLeftBrightness.load() / 255.0f)),
+        static_cast<uint8_t>(rgbLeftValues.b * (currentLeftBrightness.load() / 255.0f))
     };
     // std::cout << "scaledRGBLeft: " << static_cast<int> (scaledRGBLeft.r) << " " << static_cast<int> (scaledRGBLeft.g) << " " << static_cast<int> (scaledRGBLeft.b) << std::endl;
     // std::cout << "leftScale: " << leftScale << std::endl;
     RGB scaledRGBRight{
-        static_cast<uint8_t>(rgbRightValues.r * (rightScale)),
-        static_cast<uint8_t>(rgbRightValues.g * (rightScale)),
-        static_cast<uint8_t>(rgbRightValues.b * (rightScale))
+        static_cast<uint8_t>(rgbRightValues.r * (currentRightBrightness.load() / 255.0f)),
+        static_cast<uint8_t>(rgbRightValues.g * (currentRightBrightness.load() / 255.0f)),
+        static_cast<uint8_t>(rgbRightValues.b * (currentRightBrightness.load() / 255.0f))
     };
     // std::cout << "scaledRGBRight: " << static_cast<int> (scaledRGBRight.r) << " " << static_cast<int> (scaledRGBRight.g) << " " << static_cast<int> (scaledRGBRight.b) << std::endl;
     // std::cout << "rightScale: " << rightScale << std::endl;
@@ -170,8 +152,7 @@ bool LEDCommunication::tryConnect()
     return true;
 }
 
-void LEDCommunication::run()
-{
+void LEDCommunication::run() {
     juce::int64 lastRetryTime = 0;
     std::cout << "=== LED Communication Thread Started ===" << std::endl;
     std::cout << "Initial port: " << portName << std::endl;
@@ -195,23 +176,20 @@ void LEDCommunication::run()
             continue;
         }
 
-        RGB rgbLeft = leftColorDecisionML.getCurrentRGB();
-        RGB rgbRight = rightColorDecisionML.getCurrentRGB();
-        // std::cout << "rgbLeft: " << static_cast<int> (rgbLeft.r) << " " << static_cast<int> (rgbLeft.g) << " " << static_cast<int> (rgbLeft.b) << std::endl;
-        // std::cout << "rgbRight: " << static_cast<int> (rgbRight.r) << " " << static_cast<int> (rgbRight.g) << " " << static_cast<int> (rgbRight.b) << std::endl;
-        prepareData(rgbLeft, rgbRight);
+        if (processorPointer) {
+            prepareData(processorPointer->getLeftColorDecisionML().getCurrentRGB(),
+                        processorPointer->getRightColorDecisionML().getCurrentRGB());
         
-        DWORD bytesWritten;
-        if (!WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL)) {
-            DWORD error = GetLastError();
-            std::cout << "Failed to write to serial port. Error code: " << error << std::endl;
-            isPortConnected.store(false);
-            continue;
+            DWORD bytesWritten;
+                if (!WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL)) {
+                    DWORD error = GetLastError();
+                    std::cout << "Failed to write to serial port. Error code: " << error << std::endl;
+                    isPortConnected.store(false);
+                    continue;
+                }
         }
-
         wait(8);
     }
-    
     std::cout << "=== LED Communication Thread Stopping ===" << std::endl;
 }
 

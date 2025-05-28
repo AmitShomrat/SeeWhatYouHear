@@ -176,8 +176,8 @@ private:
     AudioPluginAudioProcessor& processorRef;
     float leftChannelLevel = {0.0f};
     float rightChannelLevel = {0.0f};
-    ColorDecisionML& leftColorDecisionML;
-    ColorDecisionML& rightColorDecisionML;
+    // ColorDecisionML& leftColorDecisionML;
+    // ColorDecisionML& rightColorDecisionML;
     RGB currentLeftRGB{/*RGB{0, 0, 0}*/};
     RGB currentRightRGB{/*RGB{0, 0, 0}*/};
     
