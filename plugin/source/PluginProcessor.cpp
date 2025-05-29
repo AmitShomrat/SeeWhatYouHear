@@ -13,11 +13,8 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
       ),
-      leftColorDecisionML(1 << order2048), // TODO: Remove colorDecisionML members and initilize them via FFTProcessor
-      rightColorDecisionML(1 << order2048), 
       ledComm(std::make_unique<audio_plugin::LEDCommunication>(this)),
-      leftChannelFFTProcessor(std::make_shared<FFTProcessor>(leftChannelFifo, leftColorDecisionML)),
-      rightChannelFFTProcessor(std::make_shared<FFTProcessor>(rightChannelFifo, rightColorDecisionML)) {
+      FFTProcessor(std::make_unique<audio_plugin::FFTProcessor>(leftChannelFifo, rightChannelFifo)) {
     #if JUCE_DEBUG
         // Create a log file in the user's documents directory
         auto logFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
@@ -107,8 +104,7 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   leftChannelFifo.prepare(samplesPerBlock);
   rightChannelFifo.prepare(samplesPerBlock);
 
-  leftChannelFFTProcessor->prepare(sampleRate);
-  rightChannelFFTProcessor->prepare(sampleRate);
+  FFTProcessor->prepare(sampleRate);
 
   // Initialize oscillators with 0.5 amplitude (multiply sin(x) by 0.5)
   leftOsc.initialise([](float x) { return std::sin(x); }, 128);

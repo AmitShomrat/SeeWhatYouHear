@@ -174,8 +174,8 @@ void LEDCommunication::run() {
         }
 
         if (processorPointer) {
-            prepareData(processorPointer->getLeftColorDecisionML().getCurrentRGB(),
-                        processorPointer->getRightColorDecisionML().getCurrentRGB());
+            prepareData(processorPointer->FFTProcessor->getLeftRGB(),
+                        processorPointer->FFTProcessor->getRightRGB());
         
             DWORD bytesWritten;
                 if (!WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL)) {

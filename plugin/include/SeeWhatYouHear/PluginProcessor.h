@@ -60,8 +60,8 @@ public:
   
   // get methods
   BrightnessDecision getBrightnessDecision() const { return brightnessDecision; }
-  ColorDecisionML& getLeftColorDecisionML() { return leftColorDecisionML; }
-  ColorDecisionML& getRightColorDecisionML() { return rightColorDecisionML; }
+  // ColorDecisionML& getLeftColorDecisionML() { return leftColorDecisionML; }
+  // ColorDecisionML& getRightColorDecisionML() { return rightColorDecisionML; }
 
   juce::AudioProcessorValueTreeState apvts{*this, nullptr, "PARAMETERS",createParameterLayout()};
   
@@ -69,8 +69,9 @@ public:
   SingleChannelSampleFifo<float> leftChannelFifo{Channel::Left};                                        
   SingleChannelSampleFifo<float> rightChannelFifo{Channel::Right};
 
-  std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
-  std::shared_ptr<FFTProcessor> rightChannelFFTProcessor;
+  // std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
+  // std::shared_ptr<FFTProcessor> rightChannelFFTProcessor;
+  std::unique_ptr<FFTProcessor> FFTProcessor;
 
 
   // Add channel level tracking
@@ -87,8 +88,8 @@ private:
   std::unique_ptr<LEDCommunication> ledComm;
   BrightnessDecision brightnessDecision;
 
-  ColorDecisionML leftColorDecisionML;
-  ColorDecisionML rightColorDecisionML;
+  // ColorDecisionML leftColorDecisionML;
+  // ColorDecisionML rightColorDecisionML;
 
   // Audio file playback members
   juce::AudioFormatManager formatManager;

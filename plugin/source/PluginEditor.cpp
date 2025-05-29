@@ -139,9 +139,7 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
 //============================================================================================================================
 //This Component is a listener and Timer object.
 ResponseCurveComponent::ResponseCurveComponent(AudioPluginAudioProcessor& p)
-: processorRef(p),
-leftPathProducer(processorRef.leftChannelFFTProcessor),
-rightPathProducer(processorRef.rightChannelFFTProcessor)
+: processorRef(p), leftPathProducer(p, Channel::Left), rightPathProducer(p, Channel::Right)
 {  
   startTimerHz(60); //timerCallback function is called 60 times per second.
 }
@@ -152,16 +150,14 @@ void ResponseCurveComponent::parameterValueChanged (int parameterIndex, float ne
 }
 
 ResponseCurveComponent::~ResponseCurveComponent() {}
-void PathProducer::process(juce::Rectangle<float> fftBounds, double sampleRate) 
+void PathProducer::process(juce::Rectangle<float> fftBounds) 
 {
-    // TODO: modify the process function, all instances of FFTProcessor should be removed.
-    juce::ignoreUnused(fftBounds, sampleRate);  // Add this line to fix the warning
-    while(monoChannelFFTProcessor-> isAvailable())//Consuming FFTData blocks in order to generate a path.
+    while(processorRef.FFTProcessor-> isChannelAvailable(channel))//Consuming FFTData blocks in order to generate a path.
     {
       std::vector<float> fftData;
-      auto fftSize = monoChannelFFTProcessor -> getFFTSize();
-      auto binWidth = monoChannelFFTProcessor -> getFFTBinWidth();
-      if(monoChannelFFTProcessor-> getLatestFFTData(fftData))
+      auto fftSize = processorRef.FFTProcessor -> getFFTSize();
+      auto binWidth = processorRef.FFTProcessor -> getFFTBinWidth();
+      if(processorRef.FFTProcessor-> getLatestFFTData(fftData, channel))
       {
         pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
       }
@@ -173,17 +169,16 @@ void PathProducer::process(juce::Rectangle<float> fftBounds, double sampleRate)
     */
     while(pathProducer.getNumPathsAvailable() > 0)
     {
-      pathProducer.getPath(leftChannelFFTPath);
+      pathProducer.getPath(channelFFTPath);
     }
 }
 
 void ResponseCurveComponent::timerCallback() {
   
   auto fftBounds = getAnalysisArea().toFloat();
-  auto sampleRate = processorRef.getSampleRate();
 
-  leftPathProducer.process(fftBounds, sampleRate);
-  rightPathProducer.process(fftBounds, sampleRate);
+  leftPathProducer.process(fftBounds);
+  rightPathProducer.process(fftBounds);
 
   repaint();
 }
@@ -420,9 +415,8 @@ void LEDSimulator::timerCallback()
     auto newLeftBrightness = processorRef.getBrightnessDecision().getLeftBrightness();
     auto newRightBrightness = processorRef.getBrightnessDecision().getRightBrightness();
     
-    // TODO: ColorDecision will remove to FFTProcessor invoke an appropriate chain of get methods.
-    RGB leftRGB = processorRef.getLeftColorDecisionML().getCurrentRGB();
-    RGB rightRGB = processorRef.getRightColorDecisionML().getCurrentRGB();
+    RGB leftRGB = processorRef.FFTProcessor->getLeftRGB();
+    RGB rightRGB = processorRef.FFTProcessor->getRightRGB();
     
     // Check for any changes in brightness or color
     bool needsRepaint = false;
