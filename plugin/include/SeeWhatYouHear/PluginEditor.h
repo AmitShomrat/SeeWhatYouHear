@@ -116,22 +116,27 @@ struct RotarySliderWithLabels : juce::Slider {
 };
 
 struct PathProducer {
-  PathProducer(std::shared_ptr<FFTProcessor> fftProcessor) : leftChannelFFTProcessor(fftProcessor){}
+  PathProducer(AudioPluginAudioProcessor& p, Channel ch) : processorRef(p), channel(ch){}
 
-  void process(juce::Rectangle<float> fftBounds, double sampleRate);
-  juce::Path getPath() {return leftChannelFFTPath;}
+  void process(juce::Rectangle<float> fftBounds);
+  juce::Path getPath() {return channelFFTPath;}
   private:
-    std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
+    // //TODO: This class might not have the FFTProcessor member. take it from the audioProcessor as you use it.
+    // std::shared_ptr<FFTProcessor> monoChannelFFTProcessor;
+
+    AudioPluginAudioProcessor& processorRef;
 
     AnalyzerPathGenerator<juce::Path> pathProducer;
 
-    juce::Path leftChannelFFTPath;
+    juce::Path channelFFTPath;
+
+    Channel channel;
 };
 
 struct ResponseCurveComponent : juce::Component, 
 juce::AudioProcessorParameter::Listener, juce::Timer 
 {
-  ResponseCurveComponent(AudioPluginAudioProcessor&);
+  ResponseCurveComponent(AudioPluginAudioProcessor& p);
   ~ResponseCurveComponent() override;
 
   void parameterValueChanged (int parameterIndex, float newValue) override;
@@ -145,12 +150,7 @@ juce::AudioProcessorParameter::Listener, juce::Timer
   void resized() override;
   private:
     AudioPluginAudioProcessor& processorRef;
-   // LEDCommunication& ledCommunication;
     juce::Atomic<bool> parametersChanged {false};
- 
-    // MonoChain monoChain;
-
-    void updateChain();
 
     juce::Image background;
 
@@ -176,10 +176,8 @@ private:
     AudioPluginAudioProcessor& processorRef;
     float leftChannelLevel = {0.0f};
     float rightChannelLevel = {0.0f};
-    // ColorDecisionML& leftColorDecisionML;
-    // ColorDecisionML& rightColorDecisionML;
-    RGB currentLeftRGB{/*RGB{0, 0, 0}*/};
-    RGB currentRightRGB{/*RGB{0, 0, 0}*/};
+    RGB currentLeftRGB{0,0,0};
+    RGB currentRightRGB{0,0,0};
     
     void drawLED(juce::Graphics& g, juce::Rectangle<float> bounds, float brightness, juce::Colour color);
 };
@@ -200,13 +198,13 @@ private:
   std::shared_ptr<LEDCommunication> ledComm;
 
   // Add components here.
-  RotarySliderWithLabels brightnessSlider, colorSlider; 
+  RotarySliderWithLabels brightnessSlider, modeSlider; 
   ResponseCurveComponent responseCurveComponent;
   LEDSimulator ledSimulator;
 
   using APVTS = juce::AudioProcessorValueTreeState;
   using Attachment = APVTS::SliderAttachment;
-  Attachment brightnessSliderAttachment, colorSliderAttachment;
+  Attachment brightnessSliderAttachment, modeSliderAttachment;
 
   std::vector<juce::Component*> getComps();
 

@@ -5,7 +5,7 @@
 
 namespace audio_plugin {
 
-// Add utility function at the top of the namespace
+
 float getTextWidth(const juce::Font& font, const juce::String& text)
 {
     juce::GlyphArrangement glyphs;
@@ -55,9 +55,22 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
 
     g.fillPath(p);
 
-  }
+    // Adding text of value to the slider.
+    g.setFont(static_cast<float>(rswl -> getTextHeight()));
+    auto text = rswl -> getDisplayString();
 
-  juce::ignoreUnused(sliderPosProportional, rotaryStartAngle, rotaryEndAngle, slider);
+    // Use utility function instead of duplicated code
+    auto textWidth = getTextWidth(g.getCurrentFont(), text);
+
+    r.setSize(textWidth + 4, static_cast<float>(rswl -> getTextHeight()) + 2);
+    r.setCentre(bounds.getCentre());
+    
+    g.setColour(Colours::black);
+    g.fillRect(r);
+
+    g.setColour(Colours::white);
+    g.drawFittedText(text, r.toNearestInt(), juce::Justification::centred, 1);
+  }
 }
 
 
@@ -136,12 +149,41 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
   return r;
 }
 
+juce::String RotarySliderWithLabels::getDisplayString() const 
+{
+  if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(param)) 
+    return choiceParam -> getCurrentChoiceName();
+  
+  juce::String str;
+  bool addK = false;
+  
+  if(auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(param)) {
+    float val = floatParam -> get();
+
+    if(val > 999.f) {
+      val /= 1000.f;
+      addK = true;
+    }
+    str = juce::String(val, (addK ? 2 : 0));
+  }
+
+  else 
+  {
+    jassertfalse; //This should never happen.
+  }
+
+  if(suffix.isNotEmpty()) {
+    str << " " ;
+    if(addK) str << "k";
+    str << suffix;
+  }
+ return str;
+}
+
 //============================================================================================================================
 //This Component is a listener and Timer object.
 ResponseCurveComponent::ResponseCurveComponent(AudioPluginAudioProcessor& p)
-: processorRef(p),
-leftPathProducer(processorRef.leftChannelFFTProcessor),
-rightPathProducer(processorRef.rightChannelFFTProcessor)
+: processorRef(p), leftPathProducer(p, Channel::Left), rightPathProducer(p, Channel::Right)
 {  
   startTimerHz(60); //timerCallback function is called 60 times per second.
 }
@@ -152,15 +194,14 @@ void ResponseCurveComponent::parameterValueChanged (int parameterIndex, float ne
 }
 
 ResponseCurveComponent::~ResponseCurveComponent() {}
-void PathProducer::process(juce::Rectangle<float> fftBounds, double sampleRate) 
+void PathProducer::process(juce::Rectangle<float> fftBounds) 
 {
-    juce::ignoreUnused(fftBounds, sampleRate);  // Add this line to fix the warning
-    while(leftChannelFFTProcessor-> isAvailable())//Consuming FFTData blocks in order to generate a path.
+    while(processorRef.FFTProcessor-> isChannelAvailable(channel))//Consuming FFTData blocks in order to generate a path.
     {
       std::vector<float> fftData;
-      auto fftSize = leftChannelFFTProcessor -> getFFTSize();
-      auto binWidth = leftChannelFFTProcessor -> getFFTBinWidth();
-      if(leftChannelFFTProcessor-> getLatestFFTData(fftData))
+      auto fftSize = processorRef.FFTProcessor -> getFFTSize();
+      auto binWidth = processorRef.FFTProcessor -> getFFTBinWidth();
+      if(processorRef.FFTProcessor-> getLatestFFTData(fftData, channel))
       {
         pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
       }
@@ -172,17 +213,16 @@ void PathProducer::process(juce::Rectangle<float> fftBounds, double sampleRate)
     */
     while(pathProducer.getNumPathsAvailable() > 0)
     {
-      pathProducer.getPath(leftChannelFFTPath);
+      pathProducer.getPath(channelFFTPath);
     }
 }
 
 void ResponseCurveComponent::timerCallback() {
   
   auto fftBounds = getAnalysisArea().toFloat();
-  auto sampleRate = processorRef.getSampleRate();
 
-  leftPathProducer.process(fftBounds, sampleRate);
-  rightPathProducer.process(fftBounds, sampleRate);
+  leftPathProducer.process(fftBounds);
+  rightPathProducer.process(fftBounds);
 
   repaint();
 }
@@ -353,7 +393,7 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
 }
 
 LEDSimulator::LEDSimulator(AudioPluginAudioProcessor& p)
-    : processorRef(p)/*, leftColorDecisionML(p.getLeftColorDecisionML()), rightColorDecisionML(p.getRightColorDecisionML())*/
+    : processorRef(p)
 {
     startTimerHz(60);
 }
@@ -386,10 +426,6 @@ void LEDSimulator::paint(juce::Graphics& g)
     // Create LED areas
     auto leftLedArea = bounds.withX(leftLabelArea.getRight()).withWidth(ledWidth);
     auto rightLedArea = bounds.withX(bounds.getRight() - labelWidth - ledWidth).withWidth(ledWidth);
-  
-    // Get RGB values from ColorDecisionML
-    // RGB leftRGB = leftColorDecisionML.getCurrentRGB();
-    // RGB rightRGB = rightColorDecisionML.getCurrentRGB();
     
     // Create LED colors with proper uint8_t casting
     juce::Colour leftLedColor = juce::Colour::fromRGB(static_cast<uint8_t>(currentLeftRGB.r), static_cast<uint8_t>(currentLeftRGB.g), static_cast<uint8_t>(currentLeftRGB.b));
@@ -400,12 +436,9 @@ void LEDSimulator::paint(juce::Graphics& g)
     // Draw LEDs
     drawLED(g, leftLedArea, leftChannelLevel, leftLedColor);
     drawLED(g, rightLedArea, rightChannelLevel, rightLedColor);
-    // Update physical LED color
-    // ledComm->setColor(color);
 
     // Draw labels
     // Use a simpler font approach
-
     g.setFont(bounds.getHeight() * 0.3f);
     g.setColour(juce::Colours::white);
     
@@ -425,9 +458,9 @@ void LEDSimulator::timerCallback()
 {
     auto newLeftBrightness = processorRef.getBrightnessDecision().getLeftBrightness();
     auto newRightBrightness = processorRef.getBrightnessDecision().getRightBrightness();
-    // Get current RGB values
-    RGB leftRGB = processorRef.getLeftColorDecisionML().getCurrentRGB();
-    RGB rightRGB = processorRef.getRightColorDecisionML().getCurrentRGB();
+    
+    RGB leftRGB = processorRef.FFTProcessor->getLeftRGB();
+    RGB rightRGB = processorRef.FFTProcessor->getRightRGB();
     
     // Check for any changes in brightness or color
     bool needsRepaint = false;
@@ -531,11 +564,11 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     : juce::AudioProcessorEditor(&p), 
       processorRef(p),
       brightnessSlider(*processorRef.apvts.getParameter("Brightness"), ""),
-      colorSlider(*processorRef.apvts.getParameter("Color"), ""),
+      modeSlider(*processorRef.apvts.getParameter("Mode"), ""),
       responseCurveComponent(p),
       ledSimulator(p),
       brightnessSliderAttachment(processorRef.apvts, "Brightness", brightnessSlider),
-      colorSliderAttachment(processorRef.apvts, "Color", colorSlider)
+      modeSliderAttachment(processorRef.apvts, "Mode", modeSlider)
 {
   for(auto* comp : getComps()) {
     this -> addAndMakeVisible(comp);
@@ -571,14 +604,14 @@ void AudioPluginAudioProcessorEditor::resized() {
 
   auto colorSliderArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.5));
   colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 0.10));
-  colorSlider.setBounds(colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 3)));
+  modeSlider.setBounds(colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 3)));
 
 }
 
 std::vector<juce::Component*> AudioPluginAudioProcessorEditor::getComps() {
   // Commented out all sliders as requested
   return {
-    &colorSlider,
+    &modeSlider,
     &brightnessSlider,
     &responseCurveComponent,
     &ledSimulator

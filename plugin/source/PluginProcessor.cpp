@@ -13,14 +13,8 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
       ),
-      leftColorDecisionML(1 << order2048),
-      rightColorDecisionML(1 << order2048),
-      /*ledComm(std::make_shared<audio_plugin::LEDCommunication>(this)),*/
-      leftChannelFFTProcessor(std::make_shared<FFTProcessor>(leftChannelFifo, leftColorDecisionML)),
-      rightChannelFFTProcessor(std::make_shared<FFTProcessor>(rightChannelFifo, rightColorDecisionML)) {
-    // Setup debug logging
-    ledComm = std::make_shared<audio_plugin::LEDCommunication>();
-    ledComm->processorPointer = this;
+      ledComm(std::make_unique<audio_plugin::LEDCommunication>(this)),
+      FFTProcessor(std::make_unique<audio_plugin::FFTProcessor>(leftChannelFifo, rightChannelFifo)) {
     #if JUCE_DEBUG
         // Create a log file in the user's documents directory
         auto logFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
@@ -110,8 +104,7 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   leftChannelFifo.prepare(samplesPerBlock);
   rightChannelFifo.prepare(samplesPerBlock);
 
-  leftChannelFFTProcessor->prepare(sampleRate);
-  rightChannelFFTProcessor->prepare(sampleRate);
+  FFTProcessor->prepare(sampleRate);
 
   // Initialize oscillators with 0.5 amplitude (multiply sin(x) by 0.5)
   leftOsc.initialise([](float x) { return std::sin(x); }, 128);
@@ -199,11 +192,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     if (totalNumInputChannels >= 2)
         rightChannelLevel.set(calculateChannelLevel(buffer, 1));
 
-    // // Update LED communication with current levels
-    // if (ledComm) {
-    //     ledComm->setBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
-    // }
-
     brightnessDecision.computeBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
 
     leftChannelFifo.process(buffer);
@@ -243,14 +231,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout
 AudioPluginAudioProcessor::createParameterLayout() {
   juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-
   layout.add(std::make_unique<juce::AudioParameterFloat>(
       "Brightness", "Brightness", juce::NormalisableRange<float>
-      (0.f, 0.135f, 0.019f, 0.5f), 0.135f));
+      (0.f, 1.0f, 0.015f, 0.5f), 1.0f));
 
-  juce::Array<juce::String> stringArray = {"red", "blue", "green", "yellow"};
+  juce::Array<juce::String> stringArray = {"Static", "Chase", "Fade", "Rainbow"};
   layout.add(std::make_unique<juce::AudioParameterChoice>(
-      "Color", "Color", stringArray, 3));
+      "Mode", "Mode", stringArray, 0));
 
   return layout;
 }
