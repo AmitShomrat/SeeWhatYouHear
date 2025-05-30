@@ -80,6 +80,14 @@ This audio plugin provides real-time visualization of audio signals through WS28
    # Clone the repository
    git clone https://github.com/AmitShomrat/You-see-what-you-hear.git
    
+   # Install Required Arduino Libraries
+   1. Open Arduino IDE
+   2. Go to Tools > Manage Libraries
+   3. Search for and install "FastLED"
+   
+   # Note: Arduino libraries are not included in the repository
+   # They are listed in .gitignore and must be installed separately
+   
    # Open in Visual Studio
    # Build the solution
    ```
