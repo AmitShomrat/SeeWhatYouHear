@@ -9,6 +9,7 @@ LEDCommunication::LEDCommunication(AudioPluginAudioProcessor* processor)
     : juce::Thread("LEDCommunicationThread"), portName("COM3"), processorPointer(processor),
       hserial(INVALID_HANDLE_VALUE)
 {   
+    // 1 Mode byte + 2 * Brightness byte (R/L) + 2 * 3 Color byte (R/L).
     ledData.resize(9);
     startThread();
 }
