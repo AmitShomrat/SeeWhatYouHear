@@ -22,7 +22,7 @@ enum class LEDMode {
     Rainbow
 };
 
-
+// Test git branch and merge.
 class LEDCommunication : public juce::Thread {
   public:
     LEDCommunication(AudioPluginAudioProcessor* processor);
