@@ -198,13 +198,13 @@ private:
   std::shared_ptr<LEDCommunication> ledComm;
 
   // Add components here.
-  RotarySliderWithLabels brightnessSlider, colorSlider; 
+  RotarySliderWithLabels brightnessSlider, modeSlider; 
   ResponseCurveComponent responseCurveComponent;
   LEDSimulator ledSimulator;
 
   using APVTS = juce::AudioProcessorValueTreeState;
   using Attachment = APVTS::SliderAttachment;
-  Attachment brightnessSliderAttachment, colorSliderAttachment;
+  Attachment brightnessSliderAttachment, modeSliderAttachment;
 
   std::vector<juce::Component*> getComps();
 

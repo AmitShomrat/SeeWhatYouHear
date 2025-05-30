@@ -88,9 +88,6 @@ private:
   std::unique_ptr<LEDCommunication> ledComm;
   BrightnessDecision brightnessDecision;
 
-  // ColorDecisionML leftColorDecisionML;
-  // ColorDecisionML rightColorDecisionML;
-
   // Audio file playback members
   juce::AudioFormatManager formatManager;
   std::unique_ptr<juce::AudioFormatReader> formatReader;

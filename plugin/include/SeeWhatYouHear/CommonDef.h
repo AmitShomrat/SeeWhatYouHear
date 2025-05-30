@@ -166,10 +166,10 @@ struct BrightnessDecision
 
       // Only bypass step 0
       float userBrightnessScale = 0.0f;
-      if (userBrightness >= 0.019f) {  // Start from step 1
+      if (userBrightness >= 0.015f) {  // Start from step 1
           // Rescale to ensure step 1 is visible
           userBrightnessScale = juce::jmap(userBrightness, 
-                                    0.019f, 0.135f,  // Input range: from step 1 to max
+                                    0.015f, 1.0f,  // Input range: from step 1 to max
                                     0.2f, 1.0f);     // Output range: start at 20% brightness
       }
 

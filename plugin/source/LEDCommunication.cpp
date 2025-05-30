@@ -9,45 +9,64 @@ LEDCommunication::LEDCommunication(AudioPluginAudioProcessor* processor)
     : juce::Thread("LEDCommunicationThread"), portName("COM3"), processorPointer(processor),
       hserial(INVALID_HANDLE_VALUE)
 {   
-    ledData.resize(numLEDs * 3 + 1 + 2);
+    ledData.resize(9);
     startThread();
 }
 
 LEDCommunication::~LEDCommunication() 
 {
+    stopThread(1500);
     if (hserial != INVALID_HANDLE_VALUE) {
         // Turn off LEDs before closing
         std::cout << "Turning off LEDs before closing." << std::endl;
-        prepareData(RGB{0, 0, 0}, RGB{0, 0, 0});
+        ledData[0] = static_cast<unsigned char>(0xFB);
         DWORD bytesWritten;
-        if (!WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL)) {
-            std::cout << "Failed to write to serial port. Error code: " << GetLastError() << std::endl;
-        }
+        WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL);
         CloseHandle(hserial);
         std::cout << "LEDCommunication destroyed." << std::endl;
     }
-    stopThread(1000);
+}
+
+void LEDCommunication::changeMode()
+{
+    switch(currentMode.load()) {
+        case LEDMode::Static:
+            ledData[0] = static_cast<unsigned char>(0xFF);
+            break;
+        case LEDMode::Chase:
+            ledData[0] = static_cast<unsigned char>(0xFE);
+            break;
+        case LEDMode::Fade:
+            ledData[0] = static_cast<unsigned char>(0xFD);
+            break;
+        case LEDMode::Rainbow:
+            ledData[0] = static_cast<unsigned char>(0xFC);
+            break;
+        default:
+            ledData[0] = static_cast<unsigned char>(0xF);
+            break;
+    } 
 }
 
 int LEDCommunication::setBrightness(float monoBrightness)
 { 
-    float leftScaled = 0.0f;
+    float monoChannelScaled = 0.0f;
 
     // Add threshold check for zero values
     if (std::abs(monoBrightness) < 0.001f) {
-        leftScaled = 0.0f;
+        monoChannelScaled = 0.0f;
     } else {
         // Use decibels scaling with expanded range (-60dB to 0dB)
-        leftScaled = monoBrightness;
+        monoChannelScaled = monoBrightness;
     }
     // Apply power curve for better sensitivity at low levels
     // float memory = 0.9898f sensetive for low values start leds at -40Db due to the totalyzor
     // float memory2 = 3.0f sensetive for high values start leds at -10Db due to the totalyzor
-    leftScaled = std::pow(leftScaled, 3.0f);
+    monoChannelScaled = std::pow(monoChannelScaled, 1.5f);
 
     // Map to 0-255 range with threshold at 0.004
     float mappedValueLeft = juce::jmap(
-        leftScaled, 
+        monoChannelScaled, 
         0.0f,
         1.0f,
         0.0f,
@@ -65,7 +84,6 @@ void LEDCommunication::prepareData(RGB rgbLeftValues, RGB rgbRightValues)
         currentRightBrightness.store(setBrightness(processorPointer->getBrightnessDecision().getRightBrightness().get()));
     }
 
-    juce::ignoreUnused(rgbLeftValues, rgbRightValues);
     RGB scaledRGBLeft{
         static_cast<uint8_t>(rgbLeftValues.r * (currentLeftBrightness.load() / 255.0f)),
         static_cast<uint8_t>(rgbLeftValues.g * (currentLeftBrightness.load() / 255.0f)),
@@ -80,20 +98,33 @@ void LEDCommunication::prepareData(RGB rgbLeftValues, RGB rgbRightValues)
     };
     // std::cout << "scaledRGBRight: " << static_cast<int> (scaledRGBRight.r) << " " << static_cast<int> (scaledRGBRight.g) << " " << static_cast<int> (scaledRGBRight.b) << std::endl;
     // std::cout << "rightScale: " << rightScale << std::endl;
-    ledData[0] = static_cast<unsigned char>(0xFF);
+    
+    currentMode.store(static_cast<LEDMode>(processorPointer->apvts.getRawParameterValue("Mode")->load()));
+    changeMode();
+    // Why not sending only mode bit, color and brightness and the LED itself will duplicate the color for each led?
+
     ledData[1] = static_cast<unsigned char>(currentLeftBrightness.load());
     ledData[2] = static_cast<unsigned char>(currentRightBrightness.load());
+    ledData[3] = static_cast<unsigned char>(scaledRGBLeft.r);
+    ledData[4] = static_cast<unsigned char>(scaledRGBLeft.g);
+    ledData[5] = static_cast<unsigned char>(scaledRGBLeft.b);
+    ledData[6] = static_cast<unsigned char>(scaledRGBRight.r);
+    ledData[7] = static_cast<unsigned char>(scaledRGBRight.g);
+    ledData[8] = static_cast<unsigned char>(scaledRGBRight.b);
+    // The arduino should store the values of color and brightness as a members of the class make it atomic
+    // then the arduino side will have a set function to update the values the modes will work according these values.
+    // we will save run time of the led communication.
+    // maybe we should accumulate the RGB values as well in a FIFO buffer.
+    // const int halfLEDs = numLEDs / 2;
+    // for(int i = 0; i < halfLEDs - 1; ++i) {
+    //     ledData[i * 3 + 3] = static_cast<unsigned char>(scaledRGBLeft.r);
+    //     ledData[i * 3 + 4] = static_cast<unsigned char>(scaledRGBLeft.g);
+    //     ledData[i * 3 + 5] = static_cast<unsigned char>(scaledRGBLeft.b);
 
-    const int halfLEDs = numLEDs / 2;
-    for(int i = 0; i < halfLEDs - 1; ++i) {
-        ledData[i * 3 + 3] = static_cast<unsigned char>(scaledRGBLeft.r);
-        ledData[i * 3 + 4] = static_cast<unsigned char>(scaledRGBLeft.g);
-        ledData[i * 3 + 5] = static_cast<unsigned char>(scaledRGBLeft.b);
-
-        ledData[(i + halfLEDs) * 3 + 3] = static_cast<unsigned char>(scaledRGBRight.r);
-        ledData[(i + halfLEDs) * 3 + 4] = static_cast<unsigned char>(scaledRGBRight.g);
-        ledData[(i + halfLEDs) * 3 + 5] = static_cast<unsigned char>(scaledRGBRight.b);
-    }
+    //     ledData[(i + halfLEDs) * 3 + 3] = static_cast<unsigned char>(scaledRGBRight.r);
+    //     ledData[(i + halfLEDs) * 3 + 4] = static_cast<unsigned char>(scaledRGBRight.g);
+    //     ledData[(i + halfLEDs) * 3 + 5] = static_cast<unsigned char>(scaledRGBRight.b);
+    // }
 }
 
 bool LEDCommunication::tryConnect()
@@ -185,7 +216,7 @@ void LEDCommunication::run() {
                     continue;
                 }
         }
-        wait(8);
+        wait(16);
     }
     std::cout << "=== LED Communication Thread Stopping ===" << std::endl;
 }

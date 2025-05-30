@@ -5,7 +5,7 @@
 
 namespace audio_plugin {
 
-// Add utility function at the top of the namespace
+
 float getTextWidth(const juce::Font& font, const juce::String& text)
 {
     juce::GlyphArrangement glyphs;
@@ -55,9 +55,22 @@ void LookAndFeel::drawRotarySlider(juce::Graphics& g,
 
     g.fillPath(p);
 
-  }
+    // Adding text of value to the slider.
+    g.setFont(static_cast<float>(rswl -> getTextHeight()));
+    auto text = rswl -> getDisplayString();
 
-  juce::ignoreUnused(sliderPosProportional, rotaryStartAngle, rotaryEndAngle, slider);
+    // Use utility function instead of duplicated code
+    auto textWidth = getTextWidth(g.getCurrentFont(), text);
+
+    r.setSize(textWidth + 4, static_cast<float>(rswl -> getTextHeight()) + 2);
+    r.setCentre(bounds.getCentre());
+    
+    g.setColour(Colours::black);
+    g.fillRect(r);
+
+    g.setColour(Colours::white);
+    g.drawFittedText(text, r.toNearestInt(), juce::Justification::centred, 1);
+  }
 }
 
 
@@ -134,6 +147,37 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
   r.setY(2); //To offset the text from the top of the slider.
 
   return r;
+}
+
+juce::String RotarySliderWithLabels::getDisplayString() const 
+{
+  if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*>(param)) 
+    return choiceParam -> getCurrentChoiceName();
+  
+  juce::String str;
+  bool addK = false;
+  
+  if(auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(param)) {
+    float val = floatParam -> get();
+
+    if(val > 999.f) {
+      val /= 1000.f;
+      addK = true;
+    }
+    str = juce::String(val, (addK ? 2 : 0));
+  }
+
+  else 
+  {
+    jassertfalse; //This should never happen.
+  }
+
+  if(suffix.isNotEmpty()) {
+    str << " " ;
+    if(addK) str << "k";
+    str << suffix;
+  }
+ return str;
 }
 
 //============================================================================================================================
@@ -520,11 +564,11 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor(AudioPluginAudi
     : juce::AudioProcessorEditor(&p), 
       processorRef(p),
       brightnessSlider(*processorRef.apvts.getParameter("Brightness"), ""),
-      colorSlider(*processorRef.apvts.getParameter("Color"), ""),
+      modeSlider(*processorRef.apvts.getParameter("Mode"), ""),
       responseCurveComponent(p),
       ledSimulator(p),
       brightnessSliderAttachment(processorRef.apvts, "Brightness", brightnessSlider),
-      colorSliderAttachment(processorRef.apvts, "Color", colorSlider)
+      modeSliderAttachment(processorRef.apvts, "Mode", modeSlider)
 {
   for(auto* comp : getComps()) {
     this -> addAndMakeVisible(comp);
@@ -560,14 +604,14 @@ void AudioPluginAudioProcessorEditor::resized() {
 
   auto colorSliderArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.5));
   colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 0.10));
-  colorSlider.setBounds(colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 3)));
+  modeSlider.setBounds(colorSliderArea.removeFromTop(static_cast<int>(bounds.getHeight()* 3)));
 
 }
 
 std::vector<juce::Component*> AudioPluginAudioProcessorEditor::getComps() {
   // Commented out all sliders as requested
   return {
-    &colorSlider,
+    &modeSlider,
     &brightnessSlider,
     &responseCurveComponent,
     &ledSimulator

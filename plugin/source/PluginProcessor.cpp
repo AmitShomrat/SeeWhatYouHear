@@ -192,11 +192,6 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     if (totalNumInputChannels >= 2)
         rightChannelLevel.set(calculateChannelLevel(buffer, 1));
 
-    // // Update LED communication with current levels
-    // if (ledComm) {
-    //     ledComm->setBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
-    // }
-
     brightnessDecision.computeBrightness(leftChannelLevel.get(), rightChannelLevel.get(), apvts.getRawParameterValue("Brightness")->load());
 
     leftChannelFifo.process(buffer);
@@ -236,14 +231,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout
 AudioPluginAudioProcessor::createParameterLayout() {
   juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-
   layout.add(std::make_unique<juce::AudioParameterFloat>(
       "Brightness", "Brightness", juce::NormalisableRange<float>
-      (0.f, 0.135f, 0.019f, 0.5f), 0.135f));
+      (0.f, 1.0f, 0.015f, 0.5f), 1.0f));
 
-  juce::Array<juce::String> stringArray = {"red", "blue", "green", "yellow"};
+  juce::Array<juce::String> stringArray = {"Static", "Chase", "Fade", "Rainbow"};
   layout.add(std::make_unique<juce::AudioParameterChoice>(
-      "Color", "Color", stringArray, 3));
+      "Mode", "Mode", stringArray, 0));
 
   return layout;
 }
