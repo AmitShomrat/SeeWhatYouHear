@@ -58,10 +58,7 @@ void setup() {
   FastLED.clear();
   FastLED.show();
 
-  // FestLED.setMAxRefreshRate(60);
 }
-// =============================================Preparation functions====================================================
-
 // =============================================Mode functions===========================================================
 
 void staticMode() {
@@ -87,33 +84,129 @@ void staticMode() {
       }
       FastLED.show();
 }
-// =============================================Mode functions===========================================================
+
+void instantVUMeter() {
+    // Map brightness to number of LEDs to light
+    int leftTargetLed = map(leftBrightness, 0, 255, 0, halfLeds);
+    int rightTargetLed = map(rightBrightness, 0, 255, halfLeds, NUM_LEDS);
+    
+    // Process left half (0 → 149)
+    for(int i = 0; i < halfLeds; i++) {
+        if(i < leftTargetLed) {
+            leds[i] = CRGB(
+                RGBLeft.b,  // B This is the Real order DO NOT TOUCH !
+                RGBLeft.r,  // R
+                RGBLeft.g   // G
+            );
+        } else {
+            leds[i] = CRGB(0, 0, 0);
+        }
+    }
+    
+    // Process right half (150 → 300)
+    for(int i = halfLeds; i < NUM_LEDS; i++) {
+        if(i < rightTargetLed) {
+            leds[i] = CRGB(
+                RGBRight.b,  // B This is the Real order DO NOT TOUCH !
+                RGBRight.r,  // R
+                RGBRight.g   // G
+            );
+        } else {
+            leds[i] = CRGB(0, 0, 0);
+        }
+    }
+    
+    FastLED.show();
+}
+
+void waveMode() {
+    // Create wave position using sine wave
+    static uint8_t wavePosition = 0;
+    
+    // Process left half (0 → 149)
+    for(int i = 0; i < halfLeds; i++) {
+        // Calculate wave intensity for this LED
+        uint8_t intensity = sin8(wavePosition + (i * 256 / halfLeds));
+        // Scale intensity by the master brightness
+        intensity = map(intensity, 0, 255, 0, leftBrightness);
+        
+        leds[i] = CRGB(
+            RGBLeft.b,  // B This is the Real order DO NOT TOUCH !
+            RGBLeft.r,  // R
+            RGBLeft.g   // G
+        );
+        leds[i].nscale8(intensity);
+    }
+    
+    // Process right half (150 → 300)
+    for(int i = halfLeds; i < NUM_LEDS; i++) {
+        // Calculate wave intensity for this LED
+        uint8_t intensity = sin8(wavePosition + ((i - halfLeds) * 256 / halfLeds));
+        // Scale intensity by the master brightness
+        intensity = map(intensity, 0, 255, 0, rightBrightness);
+        
+        leds[i] = CRGB(
+            RGBRight.b,  // B This is the Real order DO NOT TOUCH !
+            RGBRight.r,  // R
+            RGBRight.g   // G
+        );
+        leds[i].nscale8(intensity);
+    }
+    
+    // Move wave position
+    wavePosition += 4; // Adjust speed by changing this value
+    
+    FastLED.show();
+}
+
+void sparkleMode() {
+    static uint16_t sparklePos[2] = {0, halfLeds}; // Track sparkle positions for left and right
+    static uint8_t fadeRate = 64;  // How quickly the sparkles fade out
+    
+    // Fade existing LEDs
+    for(int i = 0; i < NUM_LEDS; i++) {
+        leds[i].nscale8(fadeRate);
+    }
+    
+    // Process left half (0 → 149)
+    if(random8() < leftBrightness) { // More sparkles at higher brightness
+        sparklePos[0] = random16(halfLeds);
+        leds[sparklePos[0]] = CRGB(
+            RGBLeft.b,  // B This is the Real order DO NOT TOUCH !
+            RGBLeft.r,  // R
+            RGBLeft.g   // G
+        );
+        // Create a small trail
+        if(sparklePos[0] > 0) 
+            leds[sparklePos[0]-1] = leds[sparklePos[0]].nscale8(128);
+        if(sparklePos[0] < halfLeds-1) 
+            leds[sparklePos[0]+1] = leds[sparklePos[0]].nscale8(128);
+    }
+    
+    // Process right half (150 → 300)
+    if(random8() < rightBrightness) { // More sparkles at higher brightness
+        sparklePos[1] = random16(halfLeds) + halfLeds;
+        leds[sparklePos[1]] = CRGB(
+            RGBRight.b,  // B This is the Real order DO NOT TOUCH !
+            RGBRight.r,  // R
+            RGBRight.g   // G
+        );
+        // Create a small trail
+        if(sparklePos[1] > halfLeds) 
+            leds[sparklePos[1]-1] = leds[sparklePos[1]].nscale8(128);
+        if(sparklePos[1] < NUM_LEDS-1) 
+            leds[sparklePos[1]+1] = leds[sparklePos[1]].nscale8(128);
+    }
+    
+    FastLED.show();
+}
+// =============================================loop function===========================================================
 void loop() {
   if (Serial.available()) {
     updateLEDs();
-    if (startByte == 0xFF) {
-      // // Process left half
-      // for (int i = 0; i < halfLeds - 1; i++) {
-      //   int rightIndex = i + halfLeds;
-      //   leds[i] = CRGB(
-      //     RGBLeft.b,  // B This is the Real order DO NOT TOUCH !
-      //     RGBLeft.r,  // R
-      //     RGBLeft.g   // G
-      //   );
-      //   leds[i].nscale8(leftBrightness);
-
-      //   // Process right half
-        
-      //   leds[rightIndex] = CRGB(
-      //     RGBRight.b,  // B This is the Real order DO NOT TOUCH !
-      //     RGBRight.r,  // R  
-      //     RGBRight.g   // G
-      //   );
-      //   leds[rightIndex].nscale8(rightBrightness);
-
-      // }
-      // FastLED.show();
-      staticMode();
-    }
+    if (startByte == 0) staticMode();
+    if (startByte == 1) instantVUMeter();
+    if (startByte == 2) waveMode();
+    if (startByte == 3) sparkleMode();
   }
 }
