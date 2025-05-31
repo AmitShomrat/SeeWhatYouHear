@@ -8,6 +8,7 @@ out/
 vs-build/
 build-host/
 AudioFilePlayer/
+arduino/libraries/
 TODO
 mydif
 

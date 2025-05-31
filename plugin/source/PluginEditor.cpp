@@ -189,7 +189,6 @@ ResponseCurveComponent::ResponseCurveComponent(AudioPluginAudioProcessor& p)
 }
 //This function is called when the parameter value changes.
 void ResponseCurveComponent::parameterValueChanged (int parameterIndex, float newValue) {
-  juce::ignoreUnused(parameterIndex, newValue);
   parametersChanged.set(true);
 }
 

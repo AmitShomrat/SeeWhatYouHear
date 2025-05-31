@@ -30,23 +30,24 @@ LEDCommunication::~LEDCommunication()
 
 void LEDCommunication::changeMode()
 {
-    switch(currentMode.load()) {
-        case LEDMode::Static:
-            ledData[0] = static_cast<unsigned char>(0xFF);
-            break;
-        case LEDMode::Chase:
-            ledData[0] = static_cast<unsigned char>(0xFE);
-            break;
-        case LEDMode::Fade:
-            ledData[0] = static_cast<unsigned char>(0xFD);
-            break;
-        case LEDMode::Rainbow:
-            ledData[0] = static_cast<unsigned char>(0xFC);
-            break;
-        default:
-            ledData[0] = static_cast<unsigned char>(0xF);
-            break;
-    } 
+    // switch(currentMode.load()) {
+    //     case LEDMode::Static:
+    //         ledData[0] = static_cast<unsigned char>(0xFF);
+    //         break;
+    //     case LEDMode::Chase:
+    //         ledData[0] = static_cast<unsigned char>(0xFE);
+    //         break;
+    //     case LEDMode::Fade:
+    //         ledData[0] = static_cast<unsigned char>(0xFD);
+    //         break;
+    //     case LEDMode::Rainbow:
+    //         ledData[0] = static_cast<unsigned char>(0xFC);
+    //         break;
+    //     default:
+    //         ledData[0] = static_cast<unsigned char>(0xF);
+    //         break;
+    // }
+    std::cout << "Mode: " << currentMode.load() << std::endl;
 }
 
 int LEDCommunication::setBrightness(float monoBrightness)
@@ -63,7 +64,7 @@ int LEDCommunication::setBrightness(float monoBrightness)
     // Apply power curve for better sensitivity at low levels
     // float memory = 0.9898f sensetive for low values start leds at -40Db due to the totalyzor
     // float memory2 = 3.0f sensetive for high values start leds at -10Db due to the totalyzor
-    monoChannelScaled = std::pow(monoChannelScaled, 1.5f);
+    monoChannelScaled = std::pow(monoChannelScaled, 0.5f);
 
     // Map to 0-255 range with threshold at 0.004
     float mappedValueLeft = juce::jmap(
@@ -100,10 +101,9 @@ void LEDCommunication::prepareData(RGB rgbLeftValues, RGB rgbRightValues)
     // std::cout << "scaledRGBRight: " << static_cast<int> (scaledRGBRight.r) << " " << static_cast<int> (scaledRGBRight.g) << " " << static_cast<int> (scaledRGBRight.b) << std::endl;
     // std::cout << "rightScale: " << rightScale << std::endl;
     
-    currentMode.store(static_cast<LEDMode>(processorPointer->apvts.getRawParameterValue("Mode")->load()));
-    changeMode();
+    currentMode.store(static_cast<int>(processorPointer->apvts.getRawParameterValue("Mode")->load()));
+    ledData[0] = static_cast<unsigned char>(currentMode.load());
     // Why not sending only mode bit, color and brightness and the LED itself will duplicate the color for each led?
-
     ledData[1] = static_cast<unsigned char>(currentLeftBrightness.load());
     ledData[2] = static_cast<unsigned char>(currentRightBrightness.load());
     ledData[3] = static_cast<unsigned char>(scaledRGBLeft.r);

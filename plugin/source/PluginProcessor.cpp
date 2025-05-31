@@ -235,7 +235,8 @@ AudioPluginAudioProcessor::createParameterLayout() {
       "Brightness", "Brightness", juce::NormalisableRange<float>
       (0.f, 1.0f, 0.015f, 0.5f), 1.0f));
 
-  juce::Array<juce::String> stringArray = {"Static", "Chase", "Fade", "Rainbow"};
+  // juce::Array<juce::String> stringArray = {"Static", "Chase", "Fade", "Rainbow"};
+  juce::Array<juce::String> stringArray = {"Static", "VU Meter", "Wave", "Fire Sparkle"};
   layout.add(std::make_unique<juce::AudioParameterChoice>(
       "Mode", "Mode", stringArray, 0));
 
