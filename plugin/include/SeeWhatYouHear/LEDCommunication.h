@@ -15,14 +15,6 @@
 namespace audio_plugin {  // Add namespace to match Color and RGB definitions
 class AudioPluginAudioProcessor;
 
-// enum LEDMode {
-//     Static,
-//     Chase,
-//     Fade,
-//     Rainbow
-// };
-
-
 class LEDCommunication : public juce::Thread {
   public:
     LEDCommunication(AudioPluginAudioProcessor* processor);
@@ -41,7 +33,8 @@ class LEDCommunication : public juce::Thread {
     void changeMode();
     int setBrightness(float monoBrightness);
     void prepareData(RGB rgbLeftValues, RGB rgbRightValues);
-    
+    void sendData();
+
     std::atomic<int> currentMode{0};
     std::atomic<int> currentLeftBrightness{0};
     std::atomic<int> currentRightBrightness{0};
@@ -51,11 +44,13 @@ class LEDCommunication : public juce::Thread {
     // Reference and pointers
     AudioPluginAudioProcessor* processorPointer = nullptr;
     // Serial port connection
+    bool checkConnection();
     bool tryConnect();
     juce::String portName;
     const int numLEDs = 300;
     std::vector<unsigned char> ledData; 
     HANDLE hserial;
+    juce::int64 lastRetryTime = 0;
 
     // Connection retry parameters
     static constexpr int RETRY_INTERVAL_MS = 5000; // 5 seconds between retries

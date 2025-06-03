@@ -28,28 +28,6 @@ LEDCommunication::~LEDCommunication()
     }
 }
 
-void LEDCommunication::changeMode()
-{
-    // switch(currentMode.load()) {
-    //     case LEDMode::Static:
-    //         ledData[0] = static_cast<unsigned char>(0xFF);
-    //         break;
-    //     case LEDMode::Chase:
-    //         ledData[0] = static_cast<unsigned char>(0xFE);
-    //         break;
-    //     case LEDMode::Fade:
-    //         ledData[0] = static_cast<unsigned char>(0xFD);
-    //         break;
-    //     case LEDMode::Rainbow:
-    //         ledData[0] = static_cast<unsigned char>(0xFC);
-    //         break;
-    //     default:
-    //         ledData[0] = static_cast<unsigned char>(0xF);
-    //         break;
-    // }
-    std::cout << "Mode: " << currentMode.load() << std::endl;
-}
-
 int LEDCommunication::setBrightness(float monoBrightness)
 { 
     float monoChannelScaled = 0.0f;
@@ -112,22 +90,22 @@ void LEDCommunication::prepareData(RGB rgbLeftValues, RGB rgbRightValues)
     ledData[6] = static_cast<unsigned char>(scaledRGBRight.r);
     ledData[7] = static_cast<unsigned char>(scaledRGBRight.g);
     ledData[8] = static_cast<unsigned char>(scaledRGBRight.b);
-    // The arduino should store the values of color and brightness as a members of the class make it atomic
-    // then the arduino side will have a set function to update the values the modes will work according these values.
-    // we will save run time of the led communication.
-    // maybe we should accumulate the RGB values as well in a FIFO buffer.
-    // const int halfLEDs = numLEDs / 2;
-    // for(int i = 0; i < halfLEDs - 1; ++i) {
-    //     ledData[i * 3 + 3] = static_cast<unsigned char>(scaledRGBLeft.r);
-    //     ledData[i * 3 + 4] = static_cast<unsigned char>(scaledRGBLeft.g);
-    //     ledData[i * 3 + 5] = static_cast<unsigned char>(scaledRGBLeft.b);
-
-    //     ledData[(i + halfLEDs) * 3 + 3] = static_cast<unsigned char>(scaledRGBRight.r);
-    //     ledData[(i + halfLEDs) * 3 + 4] = static_cast<unsigned char>(scaledRGBRight.g);
-    //     ledData[(i + halfLEDs) * 3 + 5] = static_cast<unsigned char>(scaledRGBRight.b);
-    // }
 }
 
+void LEDCommunication::sendData(){
+    if (processorPointer) {
+        prepareData(processorPointer->FFTProcessor->getLeftRGB(),
+                    processorPointer->FFTProcessor->getRightRGB());
+        
+        DWORD bytesWritten;
+        if (!WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL)) {
+            DWORD error = GetLastError();
+            std::cout << "Failed to write to serial port. Error code: " << error << std::endl;
+            isPortConnected.store(false);
+            return;
+        }
+    }
+}
 bool LEDCommunication::tryConnect()
 {
     if (hserial != INVALID_HANDLE_VALUE) {
@@ -181,13 +159,8 @@ bool LEDCommunication::tryConnect()
     return true;
 }
 
-void LEDCommunication::run() {
-    juce::int64 lastRetryTime = 0;
-    std::cout << "=== LED Communication Thread Started ===" << std::endl;
-    std::cout << "Initial port: " << portName << std::endl;
-
-    while (!threadShouldExit()) {
-        if (shouldReconnect.load() || (!isPortConnected.load() && juce::Time::currentTimeMillis() - lastRetryTime > RETRY_INTERVAL_MS)) {
+bool LEDCommunication::checkConnection(){
+    if (shouldReconnect.load() || (!isPortConnected.load() && juce::Time::currentTimeMillis() - lastRetryTime > RETRY_INTERVAL_MS)) {
             shouldReconnect.store(false);
             lastRetryTime = juce::Time::currentTimeMillis();
             
@@ -195,28 +168,25 @@ void LEDCommunication::run() {
             if (!tryConnect()) {
                 std::cout << "Connection attempt failed - will retry in " << RETRY_INTERVAL_MS/1000 << " seconds" << std::endl;
                 wait(100);
-                continue;
+                return false;
             }
             std::cout << "Successfully connected to port: " << portName << std::endl;
         }
 
         if (!isPortConnected.load()) {
             wait(100);
-            continue;
+            return false;
         }
+    return true;
+}
+void LEDCommunication::run() {
+    std::cout << "=== LED Communication Thread Started ===" << std::endl;
+    std::cout << "Initial port: " << portName << std::endl;
 
-        if (processorPointer) {
-            prepareData(processorPointer->FFTProcessor->getLeftRGB(),
-                        processorPointer->FFTProcessor->getRightRGB());
-        
-            DWORD bytesWritten;
-                if (!WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL)) {
-                    DWORD error = GetLastError();
-                    std::cout << "Failed to write to serial port. Error code: " << error << std::endl;
-                    isPortConnected.store(false);
-                    continue;
-                }
-        }
+    while (!threadShouldExit()) {
+        if(!checkConnection()) continue;
+//------------------------------run operation--------------------------------
+        sendData();
         wait(16);
     }
     std::cout << "=== LED Communication Thread Stopping ===" << std::endl;
