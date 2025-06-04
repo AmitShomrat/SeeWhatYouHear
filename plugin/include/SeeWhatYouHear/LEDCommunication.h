@@ -3,6 +3,7 @@
 #include "ColorDecisionML.h"
 #include <atomic>
 #include <vector>
+#include <fstream>
 #include <juce_core/juce_core.h>
 #include <juce_events/juce_events.h>
 #include <juce_dsp/juce_dsp.h>  // For FastMathApproximations
@@ -14,7 +15,6 @@
 
 namespace audio_plugin {  // Add namespace to match Color and RGB definitions
 class AudioPluginAudioProcessor;
-
 class LEDCommunication : public juce::Thread {
   public:
     LEDCommunication(AudioPluginAudioProcessor* processor);
@@ -43,6 +43,7 @@ class LEDCommunication : public juce::Thread {
     
     // Reference and pointers
     AudioPluginAudioProcessor* processorPointer = nullptr;
+    
     // Serial port connection
     bool checkConnection();
     bool tryConnect();
@@ -51,9 +52,19 @@ class LEDCommunication : public juce::Thread {
     std::vector<unsigned char> ledData; 
     HANDLE hserial;
     juce::int64 lastRetryTime = 0;
-
     // Connection retry parameters
     static constexpr int RETRY_INTERVAL_MS = 5000; // 5 seconds between retries
+    
+    // Test pearsons members
+    void initializePearsonData();
+    void logPearsonData();
+    void readSerialData();
+    static const size_t SERIAL_BUFFER_SIZE = 256;
+    char serialBuffer[SERIAL_BUFFER_SIZE];
+    juce::uint32 startTimeMs;
+    std::ofstream pearsonDataFile;
+    std::ofstream esp32DataFile;
+
 };
 
 } // namespace audio_plugin
