@@ -16,31 +16,69 @@ CRGB leds[NUM_LEDS];
 
 // LEDs spec
 // Mode byte + 2 * Brightness byte + 2 * 3 Color byte.
-const int expectedBytes = 1 + 2 + 2;
+const int expectedBytes = 1 + 2 + (2 * 3);
 static byte buffer[NUM_LEDS * 3];
 const int halfLeds = NUM_LEDS/2;
 // LEDs state
 int startByte;
 unsigned char leftBrightness;
 unsigned char rightBrightness;
+// Test members
+unsigned long startTimeMs = 0;
+bool isFirstMessage = true;
 // =============================================Preparation functions====================================================
 void updateLEDs() {
   startByte = Serial.read(); // Expected values 0xFF/0xFE/0xFD/0xFC
-  if(startByte == 0xFB) {
+
+  if(isFirstMessage){
+    startTimeMs = millis();
+    isFirstMessage = false;
+  }
+  //LEDCommunication Destructor signal.
+  if(startByte == 4) {
+    isFirstMessage = true;
+    // Make sure to read all 9 bytes even for mode 4
+    leftBrightness = Serial.read();
+    rightBrightness = Serial.read();
+    // Read the remaining 6 bytes to keep the protocol consistent
+    for(int i = 0; i < 6; i++) {
+      Serial.read();
+    }
+    
+    // Turn off all LEDs
+    FastLED.clear();
+    FastLED.show();
+    
+    // Send confirmation back
+    Serial.print("ESP32:SHUTDOWN,0,0\n");
+    
     leftBrightness = 0;
     rightBrightness = 0;
     RGBLeft = {0, 0, 0};
     RGBRight = {0, 0, 0};
-  } else {
-  leftBrightness = Serial.read();
-  rightBrightness = Serial.read();
-  RGBLeft.r = Serial.read();
-  RGBLeft.g = Serial.read();
-  RGBLeft.b = Serial.read();
-  RGBRight.r = Serial.read();
-  RGBRight.g = Serial.read();
-  RGBRight.b = Serial.read();
+  } 
+  else {
+    leftBrightness = Serial.read();
+    rightBrightness = Serial.read();
+    RGBLeft.r = Serial.read();
+    RGBLeft.g = Serial.read();
+    RGBLeft.b = Serial.read();
+    RGBRight.r = Serial.read();
+    RGBRight.g = Serial.read();
+    RGBRight.b = Serial.read();
   }
+    
+  // Pearson commands.
+  // Send data back through Serial with timestamp
+  // unsigned long currentTime = millis();
+  // unsigned long elapsedMs = currentTime - startTimeMs;
+  // Format: "ESP32:timestamp,leftBrightness,rightBrightness"
+  // Serial.print("ESP32:");
+  // Serial.print(elapsedMs);
+  // Serial.print(",");
+  // Serial.print(leftBrightness);
+  // Serial.print(",");
+  // Serial.println(rightBrightness);
 }
 
 void waitAndRead(byte* buffer, int len) {
@@ -57,7 +95,6 @@ void setup() {
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   FastLED.clear();
   FastLED.show();
-
 }
 // =============================================Mode functions===========================================================
 
