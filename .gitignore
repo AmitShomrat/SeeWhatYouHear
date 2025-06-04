@@ -8,6 +8,8 @@ out/
 vs-build/
 build-host/
 AudioFilePlayer/
+arduino/libraries/
+PearsonData/venv/
 TODO
 mydif
 

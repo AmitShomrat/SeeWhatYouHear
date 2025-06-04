@@ -7,9 +7,42 @@ This audio plugin provides real-time visualization of audio signals through WS28
 - Real-time FFT analysis of audio signals
 - Independent processing of left and right channels
 - Dynamic color decision making based on spectral analysis
-- LED strip control for visual output
+- Multiple LED visualization modes
 - Response curve visualization
 - Configurable brightness control
+
+## LED Visualization Modes
+
+### 1. Static Mode
+Basic static lighting mode where both LED strips maintain constant colors and brightness.
+- Left strip (0-149): Controlled by RGBLeft and leftBrightness
+- Right strip (150-300): Controlled by RGBRight and rightBrightness
+- Colors remain solid and stable
+- Perfect for ambient lighting or testing
+
+### 2. VU Meter Mode
+Professional audio level meter visualization.
+- Instantly responds to audio levels
+- Left channel: LEDs light up from 0→149 based on intensity
+- Right channel: LEDs light up from 150→300 based on intensity
+- Higher audio levels = more LEDs illuminate
+- Perfect for real-time audio monitoring
+
+### 3. Wave Mode
+Smooth, flowing wave animation through both LED strips.
+- Creates a continuous sine wave pattern
+- Separate colors for left and right channels
+- Wave intensity controlled by brightness levels
+- Smooth transitions and fluid movement
+- Ideal for ambient visualization
+
+### 4. Fire Sparkle Mode
+Dynamic sparkling effect with trailing glow.
+- Random LED sparkles with color trails
+- Brightness controls sparkle frequency
+- Separate left/right color effects
+- Fade-out animation for smooth transitions
+- Creates an energetic, music-responsive display
 
 ## Technical Details
 
@@ -46,10 +79,22 @@ This audio plugin provides real-time visualization of audio signals through WS28
 
 5. **LED Control**
    - WS2812B LED strip support
-   - 300 LEDs per strip
-   - GRB color order
+   - 300 LEDs total (150 per channel)
+   - BRG color order (Important!)
    - Serial communication at 115200 baud
    - Brightness control range: 0-255
+   - Independent left/right channel control
+   - Multiple visualization modes with real-time switching
+
+### Color Order Note
+Important: The LED color order is BRG (Blue, Red, Green). This must be maintained for proper color reproduction:
+```cpp
+CRGB(
+    value.b,  // Blue
+    value.r,  // Red
+    value.g   // Green
+)
+```
 
 ### Threading Architecture
 - Main audio thread: Real-time audio processing
@@ -135,9 +180,17 @@ This audio plugin provides real-time visualization of audio signals through WS28
 2. **LED Control**
    - Connect LED strips
    - Verify serial communication
+   - Select desired visualization mode
    - Adjust brightness as needed
+   - Switch between modes in real-time
 
-3. **Troubleshooting**
+3. **Mode Selection**
+   - Static Mode: For testing and ambient lighting
+   - VU Meter: For accurate audio level monitoring
+   - Wave Mode: For smooth, flowing visualizations
+   - Fire Sparkle: For dynamic, energetic displays
+
+4. **Troubleshooting**
    - Check COM port settings
    - Verify LED strip connections
    - Monitor CPU usage
