@@ -9,9 +9,7 @@ LEDCommunication::LEDCommunication(AudioPluginAudioProcessor* processor)
     : juce::Thread("LEDCommunicationThread"), portName("COM3"), processorPointer(processor),
       hserial(INVALID_HANDLE_VALUE)
 {   
-    // Remove after testing.
-    // startTimeMs = juce::Time::getMillisecondCounter();
-    initializePearsonData();
+    // initializePearsonData(); Pearson Test.
     // ------------------------------------------------------------
 
     // 1 Mode byte + 2 * Brightness byte (R/L) + 2 * 3 Color byte (R/L).
@@ -101,9 +99,8 @@ void LEDCommunication::sendData() {
     if (processorPointer) {
         prepareData(processorPointer->FFTProcessor->getLeftRGB(),
                     processorPointer->FFTProcessor->getRightRGB());
-
-        // Remove after testing.
-        logPearsonData();
+ 
+        // logPearsonData(); Pearson Test.
         // ------------------------------------------------------------
         DWORD bytesWritten;
         if (!WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL)) {
@@ -308,7 +305,8 @@ void LEDCommunication::run() {
         if(!checkConnection()) continue;
 //------------------------------run operation--------------------------------
         sendData();
-        readSerialData();
+
+        // readSerialData(); Pearson Test.
         wait(16);
     }
     std::cout << "=== LED Communication Thread Stopping ===" << std::endl;
