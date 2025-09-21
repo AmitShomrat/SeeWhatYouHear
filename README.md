@@ -1,5 +1,12 @@
 # Audio Visualization Plugin
 
+## Project Poster
+<div align="center">
+    <img src="images/poster-1.png" alt="See What You Hear - Project Poster" style="max-width: 100%; height: auto;">
+    <br>
+    <em><a href="images/See What You Hear - Poster.pdf">Download Full Resolution PDF</a></em>
+</div>
+
 ## Overview
 This audio plugin provides real-time visualization of audio signals through WS2812B LED strips, combining FFT analysis with color decision making. The plugin processes stereo audio input and generates corresponding visual outputs for each channel.
 
