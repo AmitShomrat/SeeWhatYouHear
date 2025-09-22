@@ -93,15 +93,6 @@ Dynamic sparkling effect with trailing glow.
    - Independent left/right channel control
    - Multiple visualization modes with real-time switching
 
-### Color Order Note
-Important: The LED color order is BRG (Blue, Red, Green). This must be maintained for proper color reproduction:
-```cpp
-CRGB(
-    value.b,  // Blue
-    value.r,  // Red
-    value.g   // Green
-)
-```
 
 ### Threading Architecture
 - Main audio thread: Real-time audio processing
