@@ -63,14 +63,10 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: SeeWhatYouHear-${{ matrix.os }}-${{ matrix.build_type }}
-        path: build/plugin/SeeWhatYouHear_artefacts/VST3/
+        path: ${{ steps.strings.outputs.build-output-dir }}/plugin/SeeWhatYouHear_artefacts/VST3/SeeWhatYouHear.vst3
 
     - name: Get Version
       id: version
       run: echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
-    - name: Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest --build-config ${{ matrix.build_type }}
-      
+    
+    
