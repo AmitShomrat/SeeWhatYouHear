@@ -17,8 +17,8 @@ juce_add_plugin(${PROJECT_NAME}
     PLUGIN_CODE SWYH # change this to match new name
     FORMATS Standalone VST3 # may change this
     PRODUCT_NAME "SeeWhatYouHear" # change this
-    VST3_COPY_DIR "$ENV{COMMONPROGRAMFILES}/VST3" # Use environment variable for VST3 path
-    COPY_PLUGIN_AFTER_BUILD TRUE
+    VST3_COPY_DIR "$ENV{HOME}/.vst3" # Use user's VST3 directory on Linux
+    COPY_PLUGIN_AFTER_BUILD $<BOOL:$ENV{CI>>
 )
 
 # Sets the source files of the plugin project.
@@ -48,6 +48,7 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         juce::juce_audio_utils
+        atomic
     PUBLIC
         juce::juce_dsp
         juce::juce_audio_formats
