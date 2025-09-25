@@ -8,9 +8,11 @@
 #include <juce_events/juce_events.h>
 #include <juce_dsp/juce_dsp.h>  // For FastMathApproximations
 
-// Forward declare Windows HANDLE type to avoid including windows.h in header
+// Forward declare cross-platform serial handle type
 #ifdef _WIN32
     typedef void* HANDLE;
+#else
+    typedef int HANDLE;
 #endif
 
 namespace audio_plugin {  // Add namespace to match Color and RGB definitions

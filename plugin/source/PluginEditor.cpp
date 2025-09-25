@@ -196,12 +196,12 @@ void ResponseCurveComponent::parameterValueChanged (int parameterIndex, float ne
 ResponseCurveComponent::~ResponseCurveComponent() {}
 void PathProducer::process(juce::Rectangle<float> fftBounds) 
 {
-    while(processorRef.FFTProcessor-> isChannelAvailable(channel))//Consuming FFTData blocks in order to generate a path.
+    while(processorRef.fftProcessor-> isChannelAvailable(channel))//Consuming FFTData blocks in order to generate a path.
     {
       std::vector<float> fftData;
-      auto fftSize = processorRef.FFTProcessor -> getFFTSize();
-      auto binWidth = processorRef.FFTProcessor -> getFFTBinWidth();
-      if(processorRef.FFTProcessor-> getLatestFFTData(fftData, channel))
+      auto fftSize = processorRef.fftProcessor -> getFFTSize();
+      auto binWidth = processorRef.fftProcessor -> getFFTBinWidth();
+      if(processorRef.fftProcessor-> getLatestFFTData(fftData, channel))
       {
         pathProducer.generatePath(fftData, fftBounds, fftSize, static_cast<float>(binWidth), -48.f);
       }
@@ -459,8 +459,8 @@ void LEDSimulator::timerCallback()
     auto newLeftBrightness = processorRef.getBrightnessDecision().getLeftBrightness();
     auto newRightBrightness = processorRef.getBrightnessDecision().getRightBrightness();
     
-    RGB leftRGB = processorRef.FFTProcessor->getLeftRGB();
-    RGB rightRGB = processorRef.FFTProcessor->getRightRGB();
+    RGB leftRGB = processorRef.fftProcessor->getLeftRGB();
+    RGB rightRGB = processorRef.fftProcessor->getRightRGB();
     
     // Check for any changes in brightness or color
     bool needsRepaint = false;

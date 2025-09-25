@@ -14,7 +14,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 #endif
       ),
       ledComm(std::make_unique<audio_plugin::LEDCommunication>(this)),
-      FFTProcessor(std::make_unique<audio_plugin::FFTProcessor>(leftChannelFifo, rightChannelFifo)) {
+      fftProcessor(std::make_unique<audio_plugin::FFTProcessor>(leftChannelFifo, rightChannelFifo)) {
     #if JUCE_DEBUG
         // Create a log file in the user's documents directory
         auto logFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
@@ -104,7 +104,7 @@ void AudioPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerB
   leftChannelFifo.prepare(samplesPerBlock);
   rightChannelFifo.prepare(samplesPerBlock);
 
-  FFTProcessor->prepare(sampleRate);
+  fftProcessor->prepare(sampleRate);
 
   // Initialize oscillators with 0.5 amplitude (multiply sin(x) by 0.5)
   leftOsc.initialise([](float x) { return std::sin(x); }, 128);

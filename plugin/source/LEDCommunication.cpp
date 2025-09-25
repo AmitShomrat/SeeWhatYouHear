@@ -1,13 +1,28 @@
 #include "SeeWhatYouHear/LEDCommunication.h"
 #include "SeeWhatYouHear/PluginProcessor.h"
-#include <windows.h>
 #include <iostream>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <fcntl.h>
+#include <termios.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+#include <cstring>
+#include <sys/stat.h>
+#endif
 
 namespace audio_plugin {
 
 LEDCommunication::LEDCommunication(AudioPluginAudioProcessor* processor) 
-    : juce::Thread("LEDCommunicationThread"), portName("COM3"), processorPointer(processor),
-      hserial(INVALID_HANDLE_VALUE)
+    : juce::Thread("LEDCommunicationThread"), portName("COM3"), processorPointer(processor)
+#ifdef _WIN32
+      , hserial(INVALID_HANDLE_VALUE)
+#else
+      , hserial(-1)
+#endif
 {   
     // initializePearsonData(); Pearson Test.
     // ------------------------------------------------------------
@@ -20,6 +35,7 @@ LEDCommunication::LEDCommunication(AudioPluginAudioProcessor* processor)
 LEDCommunication::~LEDCommunication() 
 {
     stopThread(1500);
+#ifdef _WIN32
     if (hserial != INVALID_HANDLE_VALUE) {
         // Turn off LEDs before closing
         std::cout << "Turning off LEDs before closing." << std::endl;
@@ -29,6 +45,16 @@ LEDCommunication::~LEDCommunication()
         CloseHandle(hserial);
         std::cout << "LEDCommunication destroyed." << std::endl;
     }
+#else
+    if (hserial != -1) {
+        // Turn off LEDs before closing
+        std::cout << "Turning off LEDs before closing." << std::endl;
+        ledData[0] = static_cast<unsigned char>(4);
+        write(hserial, ledData.data(), ledData.size());
+        close(hserial);
+        std::cout << "LEDCommunication destroyed." << std::endl;
+    }
+#endif
 }
 
 int LEDCommunication::setBrightness(float monoBrightness)
@@ -97,11 +123,12 @@ void LEDCommunication::prepareData(RGB rgbLeftValues, RGB rgbRightValues)
 
 void LEDCommunication::sendData() {
     if (processorPointer) {
-        prepareData(processorPointer->FFTProcessor->getLeftRGB(),
-                    processorPointer->FFTProcessor->getRightRGB());
+        prepareData(processorPointer->fftProcessor->getLeftRGB(),
+                    processorPointer->fftProcessor->getRightRGB());
  
         // logPearsonData(); Pearson Test.
         // ------------------------------------------------------------
+#ifdef _WIN32
         DWORD bytesWritten;
         if (!WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL)) {
             DWORD error = GetLastError();
@@ -109,15 +136,31 @@ void LEDCommunication::sendData() {
             isPortConnected.store(false);
             return;
         }
+#else
+        ssize_t bytesWritten = write(hserial, ledData.data(), ledData.size());
+        if (bytesWritten < 0) {
+            std::cout << "Failed to write to serial port. Error: " << strerror(errno) << std::endl;
+            isPortConnected.store(false);
+            return;
+        }
+#endif
     }
 }
 
 void LEDCommunication::readSerialData() {
+#ifdef _WIN32
     if (!isPortConnected.load() || hserial == INVALID_HANDLE_VALUE) {
         std::cout << "Port is not connected or invalid handle value" << std::endl;
         return;
     }
+#else
+    if (!isPortConnected.load() || hserial == -1) {
+        std::cout << "Port is not connected or invalid handle value" << std::endl;
+        return;
+    }
+#endif
 
+#ifdef _WIN32
     // Check if data is available
     DWORD errors;
     COMSTAT status;
@@ -176,10 +219,56 @@ void LEDCommunication::readSerialData() {
             std::cout << "ReadFile failed with error: " << error << std::endl;
         }
     }
+#else
+    // Linux serial data reading
+    int bytesAvailable;
+    if (ioctl(hserial, FIONREAD, &bytesAvailable) == 0 && bytesAvailable > 0) {
+        std::vector<char> buffer(bytesAvailable);
+        ssize_t bytesRead = read(hserial, buffer.data(), bytesAvailable);
+        
+        if (bytesRead > 0) {
+            std::string receivedData(buffer.data(), bytesRead);
+            // Process the received data - assuming format "ESP32:timestamp,leftBrightness,rightBrightness"
+            if (receivedData.find("ESP32:") == 0) {
+                try {
+                    // Remove "ESP32:" prefix
+                    std::string data = receivedData.substr(6);
+                    
+                    // Parse the comma-separated values
+                    std::stringstream ss(data);
+                    std::string item;
+                    std::vector<std::string> values;
+                    
+                    while (std::getline(ss, item, ',')) {
+                        values.push_back(item);
+                    }
+                    
+                    if (values.size() >= 3) {
+                        // Convert values to appropriate types
+                        uint64_t esp32ElapsedTime = std::stoull(values[0]); // This is already elapsed time
+                        float leftBrightness = std::stof(values[1]);
+                        float rightBrightness = std::stof(values[2]);
+                        
+                        // Log data to ESP32Data.csv file
+                        if (esp32DataFile.is_open()) {
+                            esp32DataFile << esp32ElapsedTime << ","
+                                        << static_cast<int>(leftBrightness) << ","
+                                        << static_cast<int>(rightBrightness) << "\n";
+                            esp32DataFile.flush(); // Ensure data is written immediately
+                        }
+                    }
+                } catch (const std::exception& e) {
+                    std::cout << "Error parsing data: " << e.what() << std::endl;
+                }
+            }
+        }
+    }
+#endif
 }
 
 bool LEDCommunication::tryConnect()
 {
+#ifdef _WIN32
     if (hserial != INVALID_HANDLE_VALUE) {
         CloseHandle(hserial);
         hserial = INVALID_HANDLE_VALUE;
@@ -229,6 +318,63 @@ bool LEDCommunication::tryConnect()
 
     isPortConnected.store(true);
     return true;
+#else
+    if (hserial != -1) {
+        close(hserial);
+        hserial = -1;
+    }
+
+    // Convert JUCE String to std::string
+    std::string portPath = portName.toStdString();
+    
+    // Open the serial port
+    hserial = open(portPath.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+    
+    if (hserial == -1) {
+        std::cout << "Failed to open serial port: " << portName << std::endl;
+        isPortConnected.store(false);
+        return false;
+    }
+
+    // Configure serial port settings
+    struct termios tty;
+    if (tcgetattr(hserial, &tty) != 0) {
+        std::cout << "Failed to get serial port attributes" << std::endl;
+        close(hserial);
+        hserial = -1;
+        isPortConnected.store(false);
+        return false;
+    }
+
+    // Set baud rate
+    cfsetospeed(&tty, B115200);
+    cfsetispeed(&tty, B115200);
+
+    // Configure 8N1
+    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
+    tty.c_iflag &= ~IGNBRK;         // disable break processing
+    tty.c_lflag = 0;                // no signaling chars, no echo, no canonical processing
+    tty.c_oflag = 0;                // no remapping, no delays
+    tty.c_cc[VMIN]  = 0;            // read doesn't block
+    tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+
+    tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+    tty.c_cflag |= (CLOCAL | CREAD);        // ignore modem controls, enable reading
+    tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
+    tty.c_cflag &= ~CSTOPB;
+    tty.c_cflag &= ~CRTSCTS;
+
+    if (tcsetattr(hserial, TCSANOW, &tty) != 0) {
+        std::cout << "Failed to set serial port attributes" << std::endl;
+        close(hserial);
+        hserial = -1;
+        isPortConnected.store(false);
+        return false;
+    }
+
+    isPortConnected.store(true);
+    return true;
+#endif
 }
 
 bool LEDCommunication::checkConnection(){
@@ -254,6 +400,7 @@ bool LEDCommunication::checkConnection(){
 
 void LEDCommunication::initializePearsonData()
 {
+#ifdef _WIN32
     // Go one level up from AUDIO_PRO directory
     std::string basePath = "C:\\Users\\amit5\\Desktop\\AUDIO_PRO\\audio-plugin-template";
     std::string pearsonPath = basePath + "\\PearsonData";
@@ -282,6 +429,34 @@ void LEDCommunication::initializePearsonData()
     } else {
         std::cout << "Failed to create PearsonData directory! Error: " << GetLastError() << std::endl;
     }
+#else
+    // Linux version - use current directory for now
+    std::string pearsonPath = "PearsonData";
+    
+    // Create directory using mkdir
+    if (mkdir(pearsonPath.c_str(), 0755) == 0 || errno == EEXIST) {
+        
+        // Create/open the DSP data CSV file
+        std::string dspPath = pearsonPath + "/dspData.csv";
+        pearsonDataFile.open(dspPath, std::ios::out);
+        
+        // Create/open the ESP32 data CSV file
+        std::string esp32Path = pearsonPath + "/ESP32Data.csv";
+        esp32DataFile.open(esp32Path, std::ios::out);
+        
+        if (pearsonDataFile.is_open() && esp32DataFile.is_open()) {
+            // Write headers to both files
+            pearsonDataFile << "timestamp_ms,left_brightness,right_brightness\n";
+            esp32DataFile << "timestamp_ms,left_brightness,right_brightness\n";
+        } else {
+            std::cout << "Failed to create/open one or both CSV files" << std::endl;
+            if (!pearsonDataFile.is_open()) std::cout << "Failed to open dspData.csv" << std::endl;
+            if (!esp32DataFile.is_open()) std::cout << "Failed to open ESP32Data.csv" << std::endl;
+        }
+    } else {
+        std::cout << "Failed to create PearsonData directory! Error: " << strerror(errno) << std::endl;
+    }
+#endif
 }
 
 void LEDCommunication::logPearsonData()

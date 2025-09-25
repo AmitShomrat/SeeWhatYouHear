@@ -71,7 +71,7 @@ public:
 
   // std::shared_ptr<FFTProcessor> leftChannelFFTProcessor;
   // std::shared_ptr<FFTProcessor> rightChannelFFTProcessor;
-  std::unique_ptr<FFTProcessor> FFTProcessor;
+  std::unique_ptr<FFTProcessor> fftProcessor;
 
 
   // Add channel level tracking
