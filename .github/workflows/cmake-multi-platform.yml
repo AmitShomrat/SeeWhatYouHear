@@ -4,10 +4,8 @@ name: CMake on multiple platforms
 
 on:
   push:
-    branches: [ "SeeWhatYouHear" ]
-  pull_request:
-    branches: [ "SeeWhatYouHear" ]
-
+    branches: [ "Action_work_flow" ]
+    
 jobs:
   build:
     runs-on: ${{ matrix.os }}
