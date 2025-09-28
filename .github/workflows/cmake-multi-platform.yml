@@ -64,10 +64,11 @@ jobs:
       with:
         name: SeeWhatYouHear-${{ matrix.os }}-${{ matrix.build_type }}
         path: ${{ steps.strings.outputs.build-output-dir }}/plugin/SeeWhatYouHear_artefacts/VST3/SeeWhatYouHear.vst3
+    
     # Use git cli create release permission instead of using actions/upload-artifacts@v4.
-    # 
     - name: Get Version
       id: version
       run: echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
+      
     
-    
+#/${{ matrix.build_type }}
