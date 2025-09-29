@@ -22,9 +22,9 @@ jobs:
       # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:
         include:
-          # - os: windows-latest
-          #   c_compiler: cl
-          #   cpp_compiler: cl
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
@@ -63,12 +63,12 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: SeeWhatYouHear-${{ matrix.os }}-${{ matrix.build_type }}
-        path: ${{ steps.strings.outputs.build-output-dir }}/plugin/SeeWhatYouHear_artefacts/${{ matrix.build_type }}/VST3
+        path: ${{ steps.strings.outputs.build-output-dir }}/plugin/SeeWhatYouHear_artefacts/${{ matrix.build_type }}/VST3 # This path was redandent -> /SeeWhatYouHear.vst3
     
     # Use git cli create release permission instead of using actions/upload-artifacts@v4.
     - name: Get Version
       id: version
       run: echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
 
-    # /SeeWhatYouHear.vst3
-#
+    
+# We need to build the app with other (win) platform and create a vst3 load test.
