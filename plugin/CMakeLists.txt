@@ -48,7 +48,6 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         juce::juce_audio_utils
-        atomic
     PUBLIC
         juce::juce_dsp
         juce::juce_audio_formats
@@ -56,6 +55,11 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+# Link atomic library only on non-Windows platforms
+if(NOT WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE atomic)
+endif()
 
 # These definitions are recommended by JUCE.
 target_compile_definitions(${PROJECT_NAME}

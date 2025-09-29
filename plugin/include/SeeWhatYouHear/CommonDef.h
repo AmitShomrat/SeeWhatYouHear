@@ -10,6 +10,7 @@ enum Color {
   Green,
   Yellow
 };
+
 struct RGB {
   int r {0};
   int g {0};
