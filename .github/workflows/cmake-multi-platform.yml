@@ -45,7 +45,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       shell: powershell
       run: |
-        choco install boost -y
+        choco install -y boost
         $boost = Get-ChildItem -Directory 'C:\local' | Where-Object { $_.Name -like 'boost_*' } | Select-Object -First 1
         if (-not $boost) { throw "Boost not found under C:\local" }
         # Help CMake locate BoostConfig.cmake
