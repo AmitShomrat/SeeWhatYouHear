@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 3.22)
 # Version is needed by JUCE.
 project(SeeWhatYouHear VERSION 0.1.0)
 
+# CMake 3.31 deprecates FindBoost; prefer CONFIG packages
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
+
 find_package(Boost REQUIRED)
 
 # Adding a directory with the library/application name as a subfolder of the
@@ -50,8 +55,6 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         juce::juce_audio_utils
-        Boost:headers
-        Boost::system
     PUBLIC
         juce::juce_dsp
         juce::juce_audio_formats
