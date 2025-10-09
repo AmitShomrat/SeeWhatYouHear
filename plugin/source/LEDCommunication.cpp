@@ -473,7 +473,8 @@ bool LEDCommunication::checkConnection(){
             try { openSerial(115200);} 
             catch (const std::exception& e) {
                 juce::ignoreUnused(e);
-                std::cout << "Connection attempt failed - will retry in " << RETRY_INTERVAL_MS/1000 << " seconds" << std::endl; return false;
+                std::cout << "Connection attempt failed - will retry in " << RETRY_INTERVAL_MS/1000 << " seconds" << std::endl;
+                return false;
             }
 
             std::cout << "Successfully connected to port: " << portName << std::endl;
@@ -566,8 +567,9 @@ void LEDCommunication::run() {
 
     try { openSerial(115200);} 
     catch (const std::exception& e) {
-        juce::ignoreUnused(e)
-        std::cout << "Failed to establish port" << portName << std::endl; return;
+        juce::ignoreUnused(e);
+        std::cout << "Failed to establish port" << portName << std::endl;
+        return;
     }
 
     startTimeMs = juce::Time::getMillisecondCounter();
