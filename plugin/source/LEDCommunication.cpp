@@ -565,7 +565,10 @@ void LEDCommunication::run() {
     std::cout << "Initial port: " << portName << std::endl;
 
     try { openSerial(115200);} 
-    catch (const std::exception& e) {std::cout << "Failed to establish port" << portName << std::endl; return;}
+    catch (const std::exception& e) {
+        juce::ignoreUnused(e)
+        std::cout << "Failed to establish port" << portName << std::endl; return;
+    }
 
     startTimeMs = juce::Time::getMillisecondCounter();
     while (!threadShouldExit()) {
