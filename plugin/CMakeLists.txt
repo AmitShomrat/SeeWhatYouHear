@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.22)
 # Version is needed by JUCE.
 project(SeeWhatYouHear VERSION 0.1.0)
 
+find_package(Boost REQUIRED)
+
 # Adding a directory with the library/application name as a subfolder of the
 # include folder is a good practice. It helps avoid name clashes later on.
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/SeeWhatYouHear")
@@ -55,6 +57,7 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
 
 # Link atomic library only on non-Windows platforms
 if(NOT WIN32)
