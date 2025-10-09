@@ -5,7 +5,7 @@ cd build
 cmake --build . --target SeeWhatYouHear_VST3 --verbose
 
 echo "Starting Ardour with VST3 path..."
-export VST3_PATH="/home/amits/.vst3:$VST3_PATH" # Local host artifacts location
+export VST3_PATH="/home/amits/vst3:$VST3_PATH" # Local host artifacts location
 ardour &
 
 echo "VST3 plugin installed at: ~/.vst3/SeeWhatYouHear.vst3/"
