@@ -50,7 +50,7 @@ jobs:
         $boost = Get-ChildItem -Directory 'C:\local' | Where-Object { $_.Name -like 'boost_*' } | Select-Object -First 1
         if (-not $boost) { throw "Boost not found under C:\local" }
         echo "BOOST_ROOT=$($boost.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
-        echo "CMAKE_PREFIX_PATH=$($boost.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append    
+        echo "CMAKE_PREFIX_PATH=$($boost.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append      
 
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
