@@ -45,12 +45,12 @@ jobs:
       if: matrix.os == 'windows-latest'
       shell: powershell
       run: |
-        choco install -y boost
-        $boost = Get-ChildItem -Directory 'C:\local' | Where-Object { $_.Name -like 'boost_*' } | Select-Object -First 1
-        if (-not $boost) { throw "Boost not found under C:\local" }
-        # Help CMake locate BoostConfig.cmake
-        echo "BOOST_ROOT=$($boost.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
-        echo "CMAKE_PREFIX_PATH=$($boost.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append    
+        choco install boost-msvc-14.3 -y  # or: choco install boost -y
+        # $boost = Get-ChildItem -Directory 'C:\local' | Where-Object { $_.Name -like 'boost_*' } | Select-Object -First 1
+        # if (-not $boost) { throw "Boost not found under C:\local" }
+        # # Help CMake locate BoostConfig.cmake
+        # echo "BOOST_ROOT=$($boost.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
+        # echo "CMAKE_PREFIX_PATH=$($boost.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append    
 
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
