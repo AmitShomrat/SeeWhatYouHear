@@ -3,6 +3,33 @@ cmake_minimum_required(VERSION 3.22)
 # Version is needed by JUCE.
 project(SeeWhatYouHear VERSION 0.1.0)
 
+# --------------------------------------ChatGPT suggestions
+# Prefer Boost package config (vcpkg/modern distros). Fallback to legacy FindBoost if needed.
+set(Boost_USE_STATIC_LIBS        OFF)
+set(Boost_USE_MULTITHREADED      ON)
+set(Boost_USE_STATIC_RUNTIME     OFF)
+
+# Try CONFIG mode (provides Boost::headers, Boost::system targets)
+find_package(Boost 1.70 CONFIG QUIET COMPONENTS headers system)
+
+if(NOT Boost_FOUND)
+  # Fallback to legacy FindBoost (MODULE). CMake 3.31+ deprecates this, but we use it only if CONFIG isn't available.
+  find_package(Boost 1.70 REQUIRED COMPONENTS system)  # 'headers' isn't a component in MODULE mode
+  set(FOUND_LEGACY_BOOST_MODULE TRUE)
+endif()
+
+# Link/include depending on what we found
+if(TARGET Boost::headers OR TARGET Boost::system)
+  target_link_libraries(${PROJECT_NAME} PRIVATE Boost::headers Boost::system)
+else()
+  # Legacy MODULE mode: use variables exposed by FindBoost
+  target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
+  target_link_libraries(${PROJECT_NAME} PRIVATE ${Boost_LIBRARIES})
+endif()
+# --------------------------------------ChatGPT suggestions
+
+
+
 # CMake 3.31 deprecates FindBoost; prefer CONFIG packages
 if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
@@ -25,7 +52,7 @@ juce_add_plugin(${PROJECT_NAME}
     FORMATS Standalone VST3 # may change this
     PRODUCT_NAME "SeeWhatYouHear" # change this
     VST3_COPY_DIR "$ENV{HOME}/vst3" # Use user's VST3 directory on Linux
-    COPY_PLUGIN_AFTER_BUILD $<BOOL:$ENV{CI}>>
+    COPY_PLUGIN_AFTER_BUILD $<BOOL:$ENV{CI}>
 )
 
 # Sets the source files of the plugin project.
