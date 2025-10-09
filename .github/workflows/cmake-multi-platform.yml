@@ -38,7 +38,19 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt update
-        sudo apt install -y libasound2-dev libx11-dev libfreetype-dev libfontconfig-dev libgl-dev libcurl4-openssl-dev libwebkit2gtk-4.1-dev libgtk-3-dev
+        sudo apt install -y libasound2-dev libx11-dev libfreetype-dev libfontconfig-dev libgl-dev libcurl4-openssl-dev libwebkit2gtk-4.1-dev libgtk-3-dev libboost-all-dev
+
+    # --- Windows: install Boost via Chocolatey ---
+    - name: Install Boost (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: powershell
+      run: |
+        choco install boost-msvc-14.3 -y  # or: choco install boost -y
+        # Locate Boost root (C:\local\boost_1_8x_0) and expose to CMake
+        $boost = Get-ChildItem -Directory 'C:\local' | Where-Object { $_.Name -like 'boost_*' } | Select-Object -First 1
+        if (-not $boost) { throw "Boost not found under C:\local" }
+        echo "BOOST_ROOT=$($boost.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
+        echo "CMAKE_PREFIX_PATH=$($boost.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append    
 
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
