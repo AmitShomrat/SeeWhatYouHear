@@ -1,3 +1,5 @@
+# This starter workflow is for a CMake project running on multiple platforms. There is a different starter workflow if you just want a single platform.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-single-platform.yml
 name: CMake on multiple platforms
 
 on:
@@ -7,71 +9,83 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+
     strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
+
+      # Set up a matrix to run the following 3 configurations:
+      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
+      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
+      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
+      #
+      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:
         include:
           - os: windows-latest
             c_compiler: cl
             cpp_compiler: cl
             build_type: Release
-            triplet: x64-windows
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
             build_type: Release
-            triplet: x64-linux
 
     steps:
     - uses: actions/checkout@v4
 
-    # --- Ubuntu system deps (unchanged, includes Boost) ---
     - name: Install Ubuntu Dependencies
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt update
-        sudo apt install -y \
-          libasound2-dev libx11-dev libfreetype-dev libfontconfig-dev libgl-dev \
-          libcurl4-openssl-dev libwebkit2gtk-4.1-dev libgtk-3-dev libboost-all-dev
+        sudo apt install -y libasound2-dev libx11-dev libfreetype-dev libfontconfig-dev libgl-dev libcurl4-openssl-dev libwebkit2gtk-4.1-dev libgtk-3-dev libboost-all-dev
 
-    # --- Windows: set up vcpkg and install Boost ---
-    - name: Set up vcpkg
+    # --- Windows: install Boost via Chocolatey ---
+    - name: Install Boost
       if: matrix.os == 'windows-latest'
-      uses: lukka/run-vcpkg@v11
+      uses: MarkusJx/install-boost@v2
+      id: install-boost
       with:
-        # pin a recent commit for reproducibility (optional)
-        vcpkgGitCommitId: 1f0f2b1b5c0a2d2e3f4a5b6c7d8e9f0011223344
-
-    - name: Install Boost with vcpkg (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        vcpkg install boost-asio:${{ matrix.triplet }} boost-system:${{ matrix.triplet }}
-        # add others if you use them: boost-filesystem, boost-thread, etc.
+        boost_version: 1.80.0 # Specify the version you need
+        platform_version: 2019 # Use 2019 for Windows Server 2019 runners
+        toolset: msvc # Specify the compiler toolset (msvc for Visual Studio)
+        # Optional: Set a custom install directory
+        # boost_install_dir: C:\\some_directory   
 
     - name: Set reusable strings
+      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: strings
       shell: bash
-      run: echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
     - name: Configure CMake
-      # Use vcpkg toolchain on Windows so find_package(Boost CONFIG ...) works
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        ${{ matrix.os == 'windows-latest' && format('-DCMAKE_TOOLCHAIN_FILE={0}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET={1}', env.VCPKG_ROOT, matrix.triplet) || '' }}
         -S ${{ github.workspace }}
+      if: matrix.os == 'windows-latest'
+      env:
+        BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
 
+        
     - name: Build VST3
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --target SeeWhatYouHear_VST3 --config ${{ matrix.build_type }}
-
+    
     - name: Upload VST3 Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: SeeWhatYouHear-${{ matrix.os }}-${{ matrix.build_type }}
-        path: ${{ steps.strings.outputs.build-output-dir }}/plugin/SeeWhatYouHear_artefacts/${{ matrix.build_type }}/VST3
-
+        path: ${{ steps.strings.outputs.build-output-dir }}/plugin/SeeWhatYouHear_artefacts/${{ matrix.build_type }}/VST3 # This path was redandent -> /SeeWhatYouHear.vst3
+    
+    # Use git cli create release permission instead of using actions/upload-artifacts@v4.
     - name: Get Version
       id: version
       run: echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
+
+    
+# We need to build the app with other (win) platform and create a vst3 load test.
