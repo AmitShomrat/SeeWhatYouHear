@@ -50,6 +50,8 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         juce::juce_audio_utils
+        Boost:headers
+        Boost::system
     PUBLIC
         juce::juce_dsp
         juce::juce_audio_formats
