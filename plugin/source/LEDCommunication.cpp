@@ -31,16 +31,16 @@ LEDCommunication::LEDCommunication(AudioPluginAudioProcessor* processor)
 
 // Cross-Platforms portNames (endpoint)
 // Check udev rules. (Linux and the Win Mac equivalents)     
-#if defined (_WIN32)
-    portName = "COME3";
+// #if defined (_WIN32)
+//     portName = "COME3";
 
-#elif defined (__APPLE__)
-    portName = "/dev/tty.usbserial-0001";
+// #elif defined (__APPLE__)
+    // portName = "/dev/tty.usbserial-0001";
 
-#else 
-    portName = "/dev/esp32-led";
+// #else 
+    // portName = std::getenv("ESP32_PORT");
+    portName = std::getenv("ESP32_PORT");
 
-#endif
 
     serial_ = std::make_unique<boost::asio::serial_port>(io_); // Constracting port object with io context.
 
