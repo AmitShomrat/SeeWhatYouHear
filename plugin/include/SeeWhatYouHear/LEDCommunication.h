@@ -4,20 +4,17 @@
 #include <atomic>
 #include <vector>
 #include <fstream>
+#include <regex>
+#include <iostream> 
+#include <string>
+
 #include <juce_core/juce_core.h>
 #include <juce_events/juce_events.h>
 #include <juce_dsp/juce_dsp.h>  // For FastMathApproximations
 
 #include <boost/asio.hpp> // using a cross-platform UART interface. 
-#include <iostream> 
-
-
-// Forward declare cross-platform serial handle type
-// #ifdef _WIN32
-//     typedef void* HANDLE;
-// #else
-//     typedef int HANDLE;
-// #endif
+#include <boost/process.hpp>
+namespace bp = boost::process;
 
 namespace audio_plugin {  // Add namespace to match Color and RGB definitions
 class AudioPluginAudioProcessor;
@@ -26,19 +23,11 @@ class LEDCommunication : public juce::Thread {
     LEDCommunication(AudioPluginAudioProcessor* processor);
     ~LEDCommunication();
     void run() override; 
+    // Device:
     void openSerial(unsigned baud = 115200);
     void closeSerial();   
     std::size_t writeBytes(const uint8_t* data, std::size_t n);
     std::size_t readSome(uint8_t* dst, std::size_t max);
-
-    // Add connection state query
-    // bool isConnected() const { return isPortConnected.load(); }
-    
-    // Add method to change port
-    // void setPort(const juce::String& newPort) {
-    //     portName = newPort;
-    //     shouldReconnect.store(true);
-    // }
 
   private:
     void changeMode();
@@ -49,8 +38,6 @@ class LEDCommunication : public juce::Thread {
     std::atomic<int> currentMode{0};
     std::atomic<int> currentLeftBrightness{0};
     std::atomic<int> currentRightBrightness{0};
-    // std::atomic<bool> isPortConnected{false};
-    // std::atomic<bool> shouldReconnect{false};
     
     // Reference and pointers
     AudioPluginAudioProcessor* processorPointer = nullptr;
@@ -60,7 +47,6 @@ class LEDCommunication : public juce::Thread {
     std::vector<unsigned char> ledData;
 
     // Serial port connection
-    // bool tryConnect();
     bool checkConnection();
     
 
@@ -68,7 +54,6 @@ class LEDCommunication : public juce::Thread {
     boost::asio::io_context io_;
     std::unique_ptr<boost::asio::serial_port> serial_;
 
-    // HANDLE hserial;
 
     juce::int64 lastRetryTime = 0;
     static constexpr int RETRY_INTERVAL_MS = 5000; // 5 seconds between retries
@@ -77,12 +62,13 @@ class LEDCommunication : public juce::Thread {
     // void initializePearsonData();
     // void logPearsonData();
     // void readSerialData();
+    // std::ofstream pearsonDataFile;
+    // std::ofstream esp32DataFile;
+
     static const size_t SERIAL_BUFFER_SIZE = 256;
     char serialBuffer[SERIAL_BUFFER_SIZE];
     juce::uint32 startTimeMs;
-    std::ofstream pearsonDataFile;
-    std::ofstream esp32DataFile;
-
+    
 };
 
 } // namespace audio_plugin

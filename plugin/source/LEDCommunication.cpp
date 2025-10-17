@@ -1,45 +1,84 @@
 #include "SeeWhatYouHear/LEDCommunication.h"
 #include "SeeWhatYouHear/PluginProcessor.h"
 
-// #include <iostream>
-// #ifdef _WIN32
-// #include <windows.h>
-// #else
-// #include <fcntl.h>
-// #include <termios.h>
-// #include <unistd.h>
-// #include <sys/ioctl.h>
-// #include <errno.h>
-// #include <cstring>
-// #include <sys/stat.h>
-// #endif
-
 namespace audio_plugin {
+    std::string find_esp32_device() {
+        #if defined(__linux__) || defined(__APPLE__)
+            // Use Boost.Process to run `udevadm` and capture all serial devices
+            bp::ipstream out;
+            bp::system("udevadm info -q property -n /dev/ttyUSB0", bp::std_out > out);
+        
+            std::string line;
+            std::string device_path;
+            std::regex vendor_re("ID_VENDOR_ID=(10c4|303a)", std::regex::icase); // 10c4=Silabs, 303a=Espressif
+            std::regex product_re("ID_MODEL_ID=(ea60|1001)", std::regex::icase);
+            std::regex name_re("ID_MODEL=.*(CP2102|ESP32)", std::regex::icase);
+        
+            while (std::getline(out, line)) {
+                if (std::regex_search(line, vendor_re) || std::regex_search(line, product_re) || std::regex_search(line, name_re)) {
+                    device_path = "/dev/esp32-led"; // our consistent udev alias
+                    break;
+                }
+            }
+            if (device_path.empty()) throw std::runtime_error("ESP32 device not found via udev.");
+            return device_path;
+        
+        #elif defined(_WIN32)
+            bp::ipstream out;
+            // List COM ports with WMI (requires PowerShell)
+            bp::child c(
+                "powershell -Command \"Get-WmiObject Win32_SerialPort | Select-String 'Silicon Labs|ESP32'\"",
+                bp::std_out > out
+            );
+        
+            std::string line;
+            std::string port;
+            std::regex com_re(R"(COM\d+)");
+            while (std::getline(out, line)) {
+                std::smatch match;
+                if (std::regex_search(line, match, com_re)) {
+                    port = R"(\\.\)" + match.str();
+                    break;
+                }
+            }
+            c.wait();
+            if (port.empty()) throw std::runtime_error("ESP32 COM port not found.");
+            return port;
+        #else
+            throw std::runtime_error("Unsupported OS");
+        #endif
+}
 
 LEDCommunication::LEDCommunication(AudioPluginAudioProcessor* processor) 
-    : juce::Thread("LEDCommunicationThread"), /*portName("COM3"),*/ processorPointer(processor)
-// #ifdef _WIN32
-//       , hserial(INVALID_HANDLE_VALUE)
-// #else
-//       , hserial(-1)
-// #endif
+    : juce::Thread("LEDCommunicationThread"), processorPointer(processor)
 {   
     // initializePearsonData(); Pearson Test.
     // ------------------------------------------------------------
 
     // 1 Mode byte + 2 * Brightness byte (R/L) + 2 * 3 Color byte (R/L).
 
-// Cross-Platforms portNames (endpoint)
-// Check udev rules. (Linux and the Win Mac equivalents)     
-// #if defined (_WIN32)
-//     portName = "COME3";
+    // TODO:
+    // 1. try/catch for getenv appropriate handling.
+    // 2. whene should we fetch the device port string run time(LEDComm ctor) / compile time (constat header).  
+    // 3. Clear all comment previous class changes.
+    // 4. Fix github actions file:
+    //     4.1 windows platform dependencies download is to comnplicated look the right way to perfoems it properlty
+    //     4.2 Once the pipe is got stabled we have to try out the artifacts on Windows OS with the usage of the installation script.
+    //     4.2 Need to use mac-os ( Darwin ) CI/CD building artifacts 
+    // 5. Encapsulating the serial functions using async io thread (look GPT suggestion).
+    // 6. Next design the structs / patterns for stage multiple led strips usage.
+    // 7. Rearrange and add docs of LEDCommunication functions.
 
-// #elif defined (__APPLE__)
-    // portName = "/dev/tty.usbserial-0001";
-
-// #else 
     // portName = std::getenv("ESP32_PORT");
-    portName = std::getenv("ESP32_PORT");
+    try{
+        portName = find_esp32_device();
+    }
+    catch(const std::exception& e) {
+        std::cerr << "Error: " << e.what() << "\n";
+    }
+
+
+
 
 
     serial_ = std::make_unique<boost::asio::serial_port>(io_); // Constracting port object with io context.
@@ -79,37 +118,15 @@ void LEDCommunication::closeSerial() {
 LEDCommunication::~LEDCommunication() 
 {
     stopThread(1500);
-// #ifdef _WIN32
-    // if (hserial != INVALID_HANDLE_VALUE) {
     if(serial_ -> is_open()){
         // Turn off LEDs before closing
         std::cout << "Turning off LEDs before closing." << std::endl;
         ledData[0] = static_cast<unsigned char>(4);
-
-        // DWORD bytesWritten;
-        // WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL);
-        // CloseHandle(hserial);
         writeBytes(ledData.data(), ledData.size());
         closeSerial();
         std::cout << "LEDCommunication destroyed." << std::endl;
     }
-// #else
-//     if (hserial != -1) {
-//         // Turn off LEDs before closing
-//         std::cout << "Turning off LEDs before closing." << std::endl;
-//         ledData[0] = static_cast<unsigned char>(4);
-//         write(hserial, ledData.data(), ledData.size());
-//         close(hserial);
-//         std::cout << "LEDCommunication destroyed." << std::endl;
-//     }
-// #endif
 }
-
-
-
-
-
-
 
 int LEDCommunication::setBrightness(float monoBrightness)
 { 
@@ -201,22 +218,6 @@ void LEDCommunication::sendData() {
  
         // logPearsonData(); Pearson Test.
         // ------------------------------------------------------------
-// #ifdef _WIN32
-//         DWORD bytesWritten;
-//         if (!WriteFile(hserial, ledData.data(), static_cast<DWORD>(ledData.size()), &bytesWritten, NULL)) {
-//             DWORD error = GetLastError();
-//             std::cout << "Failed to write to serial port. Error code: " << error << std::endl;
-//             isPortConnected.store(false);
-//             return;
-//         }
-// #else
-//         ssize_t bytesWritten = write(hserial, ledData.data(), ledData.size());
-//         if (bytesWritten < 0) {
-//             std::cout << "Failed to write to serial port. Error: " << strerror(errno) << std::endl;
-//             isPortConnected.store(false);
-//             return;
-//         }
-// #endif
         if(!writeBytes(ledData.data(), ledData.size())){
             std::cout << "Failed to write to serial port." << std::endl;
             return;
@@ -226,249 +227,12 @@ void LEDCommunication::sendData() {
     // Need to handle missing processor pointer.
 }
 
-// void LEDCommunication::readSerialData() {
-// #ifdef _WIN32
-//     if (!isPortConnected.load() || hserial == INVALID_HANDLE_VALUE) {
-//         std::cout << "Port is not connected or invalid handle value" << std::endl;
-//         return;
-//     }
-// #else
-//     if (!isPortConnected.load() || hserial == -1) {
-//         std::cout << "Port is not connected or invalid handle value" << std::endl;
-//         return;
-//     }
-// #endif
-
-// #ifdef _WIN32
-//     // Check if data is available
-//     DWORD errors;
-//     COMSTAT status;
-//     if (!ClearCommError(hserial, &errors, &status)) {
-//         DWORD error = GetLastError();
-//         std::cout << "ClearCommError failed with error: " << error << std::endl;
-//         return;
-//     }
-
-//     if (status.cbInQue > 0) {
-//         // Allocate buffer for incoming data
-//         std::vector<char> buffer(status.cbInQue);
-//         DWORD bytesRead = 0;
-
-//         // Read the data
-//         if (ReadFile(hserial, buffer.data(), status.cbInQue, &bytesRead, nullptr)) {
-//             // Convert to string and process the data
-//             std::string receivedData(buffer.data(), bytesRead);
-//             // std::cout << "Received: " << receivedData << std::endl;
-            
-//             // Process the received data - assuming format "ESP32:timestamp,leftBrightness,rightBrightness"
-//             if (receivedData.find("ESP32:") == 0) {
-//                 try {
-//                     // Remove "ESP32:" prefix
-//                     std::string data = receivedData.substr(6);
-                    
-//                     // Parse the comma-separated values
-//                     std::stringstream ss(data);
-//                     std::string item;
-//                     std::vector<std::string> values;
-                    
-//                     while (std::getline(ss, item, ',')) {
-//                         values.push_back(item);
-//                     }
-                    
-//                     if (values.size() >= 3) {
-//                         // Convert values to appropriate types
-//                         uint64_t esp32ElapsedTime = std::stoull(values[0]); // This is already elapsed time
-//                         float leftBrightness = std::stof(values[1]);
-//                         float rightBrightness = std::stof(values[2]);
-                        
-//                         // Log data to ESP32Data.csv file
-//                         if (esp32DataFile.is_open()) {
-//                             esp32DataFile << esp32ElapsedTime << ","
-//                                         << static_cast<int>(leftBrightness) << ","
-//                                         << static_cast<int>(rightBrightness) << "\n";
-//                             esp32DataFile.flush(); // Ensure data is written immediately
-//                         }
-//                     }
-//                 } catch (const std::exception& e) {
-//                     std::cout << "Error parsing data: " << e.what() << std::endl;
-//                 }
-//             }
-//         } else {
-//             DWORD error = GetLastError();
-//             std::cout << "ReadFile failed with error: " << error << std::endl;
-//         }
-//     }
-// #else
-//     // Linux serial data reading
-//     int bytesAvailable;
-//     if (ioctl(hserial, FIONREAD, &bytesAvailable) == 0 && bytesAvailable > 0) {
-//         std::vector<char> buffer(bytesAvailable);
-//         ssize_t bytesRead = read(hserial, buffer.data(), bytesAvailable);
-        
-//         if (bytesRead > 0) {
-//             std::string receivedData(buffer.data(), bytesRead);
-//             // Process the received data - assuming format "ESP32:timestamp,leftBrightness,rightBrightness"
-//             if (receivedData.find("ESP32:") == 0) {
-//                 try {
-//                     // Remove "ESP32:" prefix
-//                     std::string data = receivedData.substr(6);
-                    
-//                     // Parse the comma-separated values
-//                     std::stringstream ss(data);
-//                     std::string item;
-//                     std::vector<std::string> values;
-                    
-//                     while (std::getline(ss, item, ',')) {
-//                         values.push_back(item);
-//                     }
-                    
-//                     if (values.size() >= 3) {
-//                         // Convert values to appropriate types
-//                         uint64_t esp32ElapsedTime = std::stoull(values[0]); // This is already elapsed time
-//                         float leftBrightness = std::stof(values[1]);
-//                         float rightBrightness = std::stof(values[2]);
-                        
-//                         // Log data to ESP32Data.csv file
-//                         if (esp32DataFile.is_open()) {
-//                             esp32DataFile << esp32ElapsedTime << ","
-//                                         << static_cast<int>(leftBrightness) << ","
-//                                         << static_cast<int>(rightBrightness) << "\n";
-//                             esp32DataFile.flush(); // Ensure data is written immediately
-//                         }
-//                     }
-//                 } catch (const std::exception& e) {
-//                     std::cout << "Error parsing data: " << e.what() << std::endl;
-//                 }
-//             }
-//         }
-//     }
-// #endif
-// }
-
-// bool LEDCommunication::tryConnect()
-// {
-// #ifdef _WIN32
-//     if (hserial != INVALID_HANDLE_VALUE) {
-//         CloseHandle(hserial);
-//         hserial = INVALID_HANDLE_VALUE;
-//     }
-
-//     // Convert JUCE String to ANSI string
-//     char ansiPortName[MAX_PATH];
-//     WideCharToMultiByte(CP_ACP, 0, portName.toWideCharPointer(), -1, ansiPortName, MAX_PATH, nullptr, nullptr);
-
-//     // Open the serial port
-//     hserial = CreateFileA(ansiPortName,
-//         GENERIC_READ | GENERIC_WRITE,
-//         0,
-//         nullptr,
-//         OPEN_EXISTING,
-//         FILE_ATTRIBUTE_NORMAL,
-//         nullptr);
-
-//     if (hserial == INVALID_HANDLE_VALUE) {
-//         std::cout << "Failed to open serial port: " << portName << std::endl;
-//         isPortConnected.store(false);
-//         return false;
-//     }
-
-//     DCB dcb = {0};
-//     dcb.DCBlength = sizeof(dcb);
-//     if (!GetCommState(hserial, &dcb)) {
-//         std::cout << "Failed to get comm state" << std::endl;
-//         CloseHandle(hserial);
-//         hserial = INVALID_HANDLE_VALUE;
-//         isPortConnected.store(false);
-//         return false;
-//     }
-
-//     dcb.BaudRate = CBR_115200;
-//     dcb.ByteSize = 8;
-//     dcb.StopBits = ONESTOPBIT;
-//     dcb.Parity = NOPARITY;
-
-//     if (!SetCommState(hserial, &dcb)) {
-//         std::cout << "Failed to set comm state" << std::endl;
-//         CloseHandle(hserial);
-//         hserial = INVALID_HANDLE_VALUE;
-//         isPortConnected.store(false);
-//         return false;
-//     }
-
-//     isPortConnected.store(true);
-//     return true;
-// #else
-//     if (hserial != -1) {
-//         close(hserial);
-//         hserial = -1;
-//     }
-
-//     // Convert JUCE String to std::string
-//     std::string portPath = portName.toStdString();
-    
-//     // Open the serial port
-//     hserial = open(portPath.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
-    
-//     if (hserial == -1) {
-//         std::cout << "Failed to open serial port: " << portName << std::endl;
-//         isPortConnected.store(false);
-//         return false;
-//     }
-
-//     // Configure serial port settings
-//     struct termios tty;
-//     if (tcgetattr(hserial, &tty) != 0) {
-//         std::cout << "Failed to get serial port attributes" << std::endl;
-//         close(hserial);
-//         hserial = -1;
-//         isPortConnected.store(false);
-//         return false;
-//     }
-
-//     // Set baud rate
-//     cfsetospeed(&tty, B115200);
-//     cfsetispeed(&tty, B115200);
-
-//     // Configure 8N1
-//     tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
-//     tty.c_iflag &= ~IGNBRK;         // disable break processing
-//     tty.c_lflag = 0;                // no signaling chars, no echo, no canonical processing
-//     tty.c_oflag = 0;                // no remapping, no delays
-//     tty.c_cc[VMIN]  = 0;            // read doesn't block
-//     tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
-
-//     tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
-//     tty.c_cflag |= (CLOCAL | CREAD);        // ignore modem controls, enable reading
-//     tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
-//     tty.c_cflag &= ~CSTOPB;
-//     tty.c_cflag &= ~CRTSCTS;
-
-//     if (tcsetattr(hserial, TCSANOW, &tty) != 0) {
-//         std::cout << "Failed to set serial port attributes" << std::endl;
-//         close(hserial);
-//         hserial = -1;
-//         isPortConnected.store(false);
-//         return false;
-//     }
-
-//     isPortConnected.store(true);
-//     return true;
-// #endif
-// }
 
 bool LEDCommunication::checkConnection(){
-    // if (shouldReconnect.load() || (!isPortConnected.load() && juce::Time::currentTimeMillis() - lastRetryTime > RETRY_INTERVAL_MS)) {
     if ( !serial_ || ( !serial_->is_open() && juce::Time::currentTimeMillis() - lastRetryTime > RETRY_INTERVAL_MS)) {
-            // shouldReconnect.store(false);
             lastRetryTime = juce::Time::currentTimeMillis();
             
             std::cout << "Attempting to connect to port: " << portName << " at " << juce::Time::getCurrentTime().toString(true, true) << std::endl;
-
-            // if (!tryConnect()) {
-            //     std::cout << "Connection attempt failed - will retry in " << RETRY_INTERVAL_MS/1000 << " seconds" << std::endl;
-            //     wait(100);
-            //     return false;
-            // }
 
             try { openSerial(115200);} 
             catch (const std::exception& e) {
@@ -486,6 +250,36 @@ bool LEDCommunication::checkConnection(){
         }
     return true;
 }
+
+
+void LEDCommunication::run() {
+    std::cout << "=== LED Communication Thread Started ===" << std::endl;
+    std::cout << "Initial port: " << portName << std::endl;
+    
+    try { openSerial(115200);} 
+    catch (const std::exception& e) {
+        juce::ignoreUnused(e);
+        std::cout << "Failed to establish port" << portName << std::endl;
+        return;
+    }
+    
+    startTimeMs = juce::Time::getMillisecondCounter();
+    while (!threadShouldExit()) {
+        if(!checkConnection()) continue;
+        //------------------------------run operation--------------------------------
+        sendData();
+        
+        // readSerialData(); Pearson Test.
+        wait(16);
+    }
+    std::cout << "=== LED Communication Thread Stopping ===" << std::endl;
+}
+
+
+
+
+
+
 
 // void LEDCommunication::initializePearsonData()
 // {
@@ -560,28 +354,5 @@ bool LEDCommunication::checkConnection(){
 //     }
 // }   
 
-
-void LEDCommunication::run() {
-    std::cout << "=== LED Communication Thread Started ===" << std::endl;
-    std::cout << "Initial port: " << portName << std::endl;
-
-    try { openSerial(115200);} 
-    catch (const std::exception& e) {
-        juce::ignoreUnused(e);
-        std::cout << "Failed to establish port" << portName << std::endl;
-        return;
-    }
-
-    startTimeMs = juce::Time::getMillisecondCounter();
-    while (!threadShouldExit()) {
-        if(!checkConnection()) continue;
-//------------------------------run operation--------------------------------
-        sendData();
-
-        // readSerialData(); Pearson Test.
-        wait(16);
-    }
-    std::cout << "=== LED Communication Thread Stopping ===" << std::endl;
-}
 
 } // namespace audio_plugin

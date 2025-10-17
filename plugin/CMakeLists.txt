@@ -77,6 +77,7 @@ target_compile_definitions(${PROJECT_NAME}
 # This needs to be set up only for your projects, not 3rd party
 if (MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX)
+    target_link_directories(${PROJECT_NAME} PUBLIC juce::juce_recommended_lto_flags)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
