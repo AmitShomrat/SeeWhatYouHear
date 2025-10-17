@@ -41,7 +41,7 @@ target_sources(${PROJECT_NAME}
 
 # Sets the include directories of the plugin project.
 target_include_directories(${PROJECT_NAME}
-    PUBLIC
+    SYSTEM PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${Boost_INCLUDE_DIRS}
 )
@@ -67,7 +67,7 @@ endif()
 
 # These definitions are recommended by JUCE.
 target_compile_definitions(${PROJECT_NAME}
-    SYSTEM PUBLIC
+    PUBLIC
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
